@@ -10,13 +10,24 @@ const ABAS = [
   { id: 'vendas-por-cliente', label: 'Vendas por Cliente' },
   { id: 'pagamentos-recebidos', label: 'Pagamentos Recebidos' },
   { id: 'pagamentos-pendentes', label: 'Pagamentos Pendentes' },
+  { id: 'resumo-mensal', label: 'Resumo Mensal por Cliente' },
 ];
 
 const TITULOS = {
   'vendas-por-cliente': 'Relatório de Vendas por Cliente',
   'pagamentos-recebidos': 'Relatório de Pagamentos Recebidos',
   'pagamentos-pendentes': 'Relatório de Pagamentos Pendentes',
+  'resumo-mensal': 'Resumo Mensal por Cliente',
 };
+
+const NOMES_MESES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
+
+function labelMes(grupoMes) {
+  return `${NOMES_MESES[grupoMes.mesNumero - 1]}/${grupoMes.ano}`;
+}
 
 function StatusPendenciaBadge({ status, diasAtraso }) {
   return (
@@ -38,6 +49,7 @@ export default function Relatorios() {
   const [clienteId, setClienteId] = useState('');
   const [clientes, setClientes] = useState([]);
   const [status, setStatus] = useState('');
+  const [meses, setMeses] = useState(6);
   const [resultado, setResultado] = useState([]);
   const [vendaDetalheId, setVendaDetalheId] = useState(null);
 
@@ -66,11 +78,15 @@ export default function Relatorios() {
 
   function montarParams() {
     const params = {};
-    if (dataInicio) params.dataInicio = dataInicio;
-    if (dataFim) params.dataFim = dataFim;
+    if (aba === 'resumo-mensal') {
+      params.meses = meses;
+    } else {
+      if (dataInicio) params.dataInicio = dataInicio;
+      if (dataFim) params.dataFim = dataFim;
+      if (status) params.status = status;
+    }
     if (empresaId) params.empresaId = empresaId;
     if (clienteId) params.clienteId = clienteId;
-    if (status) params.status = status;
     return params;
   }
 
@@ -87,6 +103,23 @@ export default function Relatorios() {
   }
 
   function exportarCsv() {
+    if (aba === 'resumo-mensal') {
+      const linhasMensal = [];
+      for (const grupoMes of resultado) {
+        for (const c of grupoMes.clientes) {
+          linhasMensal.push({
+            mes: labelMes(grupoMes),
+            cliente: c.clienteNome,
+            quantidadeVendas: c.quantidadeVendas,
+            valorTotal: c.valorTotal.toFixed(2),
+            lucroTotal: c.lucroTotal.toFixed(2),
+          });
+        }
+      }
+      baixarCsv('resumo-mensal.csv', linhasMensal);
+      return;
+    }
+
     const linhas = [];
     for (const grupo of resultado) {
       if (aba === 'vendas-por-cliente') {
@@ -136,6 +169,32 @@ export default function Relatorios() {
     const clienteNome = clientes.find((c) => String(c.id) === String(clienteId))?.nome;
     const subtitulos = [];
     if (clienteNome) subtitulos.push(`Cliente: ${clienteNome}`);
+
+    if (aba === 'resumo-mensal') {
+      subtitulos.push(`Últimos ${meses} meses`);
+      const colunasMensal = ['Mês', 'Cliente', 'Qtd. Vendas', 'Valor Vendido', 'Lucro'];
+      const linhasMensal = [];
+      for (const grupoMes of resultado) {
+        for (const c of grupoMes.clientes) {
+          linhasMensal.push([
+            labelMes(grupoMes),
+            c.clienteNome,
+            c.quantidadeVendas,
+            `R$ ${c.valorTotal.toFixed(2)}`,
+            `R$ ${c.lucroTotal.toFixed(2)}`,
+          ]);
+        }
+      }
+      baixarPdf({
+        nomeArquivo: 'resumo-mensal.pdf',
+        titulo: TITULOS[aba],
+        subtitulos,
+        colunas: colunasMensal,
+        linhas: linhasMensal,
+      });
+      return;
+    }
+
     if (status) subtitulos.push(`Status: ${STATUS_LABEL[status] || status}`);
     if (dataInicio || dataFim) {
       subtitulos.push(
@@ -228,15 +287,40 @@ export default function Relatorios() {
       </div>
 
       <div className="flex flex-wrap gap-3 items-end mb-6">
-        <div>
-          <label className="block text-sm mb-1">Data Início</label>
-          <input
-            type="date"
-            className="border rounded px-3 py-2"
-            value={dataInicio}
-            onChange={(e) => setDataInicio(e.target.value)}
-          />
-        </div>
+        {aba === 'resumo-mensal' ? (
+          <div>
+            <label className="block text-sm mb-1">Quantos meses atrás</label>
+            <input
+              type="number"
+              min="1"
+              max="36"
+              className="border rounded px-3 py-2 w-28"
+              value={meses}
+              onChange={(e) => setMeses(e.target.value)}
+            />
+          </div>
+        ) : (
+          <>
+            <div>
+              <label className="block text-sm mb-1">Data Início</label>
+              <input
+                type="date"
+                className="border rounded px-3 py-2"
+                value={dataInicio}
+                onChange={(e) => setDataInicio(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Data Fim</label>
+              <input
+                type="date"
+                className="border rounded px-3 py-2"
+                value={dataFim}
+                onChange={(e) => setDataFim(e.target.value)}
+              />
+            </div>
+          </>
+        )}
         <div>
           <label className="block text-sm mb-1">Empresa</label>
           <select
@@ -251,15 +335,6 @@ export default function Relatorios() {
               </option>
             ))}
           </select>
-        </div>
-        <div>
-          <label className="block text-sm mb-1">Data Fim</label>
-          <input
-            type="date"
-            className="border rounded px-3 py-2"
-            value={dataFim}
-            onChange={(e) => setDataFim(e.target.value)}
-          />
         </div>
         <div>
           <label className="block text-sm mb-1">Cliente</label>
@@ -315,13 +390,74 @@ export default function Relatorios() {
         </button>
         <button
           onClick={imprimir}
-          disabled={resultado.length === 0}
+          disabled={resultado.length === 0 || aba === 'resumo-mensal'}
+          title={aba === 'resumo-mensal' ? 'Use "Baixar PDF" para este relatório' : undefined}
           className="bg-white border px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
         >
           Imprimir
         </button>
       </div>
 
+      {aba === 'resumo-mensal' ? (
+        <div className="space-y-6">
+          {resultado.map((grupoMes) => (
+            <div key={grupoMes.mes} className="bg-white rounded shadow overflow-hidden">
+              <div className="bg-slate-900 text-white p-4 flex flex-wrap justify-between items-center gap-2">
+                <div className="text-lg font-bold">{labelMes(grupoMes)}</div>
+                <div className="flex gap-6 text-sm">
+                  <div>
+                    <div className="text-slate-300">Vendas no mês</div>
+                    <div className="font-semibold">{grupoMes.quantidadeVendas}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-300">Total Vendido</div>
+                    <div className="font-semibold">R$ {grupoMes.totalVendido.toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-300">Lucro</div>
+                    <div
+                      className={`font-semibold ${
+                        grupoMes.lucroTotal < 0 ? 'text-red-400' : 'text-green-400'
+                      }`}
+                    >
+                      R$ {grupoMes.lucroTotal.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <table className="w-full text-sm">
+                <thead className="text-left text-gray-500 bg-slate-50">
+                  <tr>
+                    <th className="p-3">Cliente</th>
+                    <th className="p-3">Qtd. Vendas</th>
+                    <th className="p-3">Valor Vendido</th>
+                    <th className="p-3">Lucro</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {grupoMes.clientes.map((c) => (
+                    <tr key={c.clienteId} className="border-t">
+                      <td className="p-3">{c.clienteNome}</td>
+                      <td className="p-3">{c.quantidadeVendas}</td>
+                      <td className="p-3">R$ {c.valorTotal.toFixed(2)}</td>
+                      <td
+                        className={`p-3 font-medium ${
+                          c.lucroTotal < 0 ? 'text-red-600' : 'text-green-700'
+                        }`}
+                      >
+                        R$ {c.lucroTotal.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+          {resultado.length === 0 && (
+            <div className="text-center text-gray-400 py-8">Nenhum dado gerado ainda</div>
+          )}
+        </div>
+      ) : (
       <div className="space-y-4">
         {resultado.map((grupo) => (
           <div key={grupo.clienteId} className="bg-white rounded shadow p-4">
@@ -452,6 +588,7 @@ export default function Relatorios() {
           <div className="text-center text-gray-400 py-8">Nenhum dado gerado ainda</div>
         )}
       </div>
+      )}
 
       <VendaDetalheModal vendaId={vendaDetalheId} onClose={() => setVendaDetalheId(null)} />
     </div>

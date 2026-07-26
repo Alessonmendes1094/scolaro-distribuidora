@@ -191,4 +191,79 @@ router.get('/pagamentos-pendentes', async (req, res) => {
   res.json(Object.values(porCliente));
 });
 
+// Resumo mensal por cliente: agrupa vendas por mês (mais recente primeiro),
+// mostrando total do mês e o detalhamento por cliente dentro do mês.
+router.get('/resumo-mensal', async (req, res) => {
+  const meses = Math.max(1, Math.min(36, Number(req.query.meses) || 6));
+
+  const hoje = new Date();
+  const dataFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59, 999);
+  const dataInicio = new Date(hoje.getFullYear(), hoje.getMonth() - (meses - 1), 1);
+
+  const vendas = await prisma.venda.findMany({
+    where: {
+      data: { gte: dataInicio, lte: dataFim },
+      ...empresaWhere(req.query),
+      ...clienteWhere(req.query),
+    },
+    include: { cliente: true, itens: true },
+    orderBy: { data: 'desc' },
+  });
+
+  const porMes = {};
+  for (const venda of vendas) {
+    const dataVenda = new Date(venda.data);
+    const chaveMes = `${dataVenda.getFullYear()}-${String(dataVenda.getMonth() + 1).padStart(2, '0')}`;
+
+    const valorVenda = venda.itens.reduce(
+      (s, i) => s + Number(i.quantidade) * Number(i.precoUnitario),
+      0
+    );
+    const lucroVenda = venda.itens.reduce(
+      (s, i) => s + (Number(i.precoUnitario) - Number(i.custoUnitario ?? 0)) * Number(i.quantidade),
+      0
+    );
+
+    if (!porMes[chaveMes]) {
+      porMes[chaveMes] = {
+        mes: chaveMes,
+        ano: dataVenda.getFullYear(),
+        mesNumero: dataVenda.getMonth() + 1,
+        totalVendido: 0,
+        lucroTotal: 0,
+        quantidadeVendas: 0,
+        clientes: {},
+      };
+    }
+
+    const grupoMes = porMes[chaveMes];
+    grupoMes.totalVendido += valorVenda;
+    grupoMes.lucroTotal += lucroVenda;
+    grupoMes.quantidadeVendas += 1;
+
+    if (!grupoMes.clientes[venda.clienteId]) {
+      grupoMes.clientes[venda.clienteId] = {
+        clienteId: venda.clienteId,
+        clienteNome: venda.cliente.nome,
+        quantidadeVendas: 0,
+        valorTotal: 0,
+        lucroTotal: 0,
+      };
+    }
+    const grupoCliente = grupoMes.clientes[venda.clienteId];
+    grupoCliente.quantidadeVendas += 1;
+    grupoCliente.valorTotal += valorVenda;
+    grupoCliente.lucroTotal += lucroVenda;
+  }
+
+  const resultado = Object.values(porMes)
+    .map((grupoMes) => ({
+      ...grupoMes,
+      clientes: Object.values(grupoMes.clientes).sort((a, b) => b.valorTotal - a.valorTotal),
+    }))
+    .sort((a, b) => b.mes.localeCompare(a.mes));
+
+  res.json(resultado);
+});
+
 module.exports = router;

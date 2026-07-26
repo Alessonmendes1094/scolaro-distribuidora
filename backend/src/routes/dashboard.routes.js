@@ -76,17 +76,33 @@ router.get('/', async (req, res) => {
       0
     );
 
-  const vendasPorDiaMap = {};
+  const porDiaMap = {};
   for (const venda of vendas) {
     const dia = venda.data.toISOString().slice(0, 10);
     const totalVenda = venda.itens.reduce(
       (s, i) => s + Number(i.quantidade) * Number(i.precoUnitario),
       0
     );
-    vendasPorDiaMap[dia] = (vendasPorDiaMap[dia] || 0) + totalVenda;
+    const lucroVenda = venda.itens.reduce(
+      (s, i) =>
+        s + (Number(i.precoUnitario) - Number(i.custoUnitario ?? 0)) * Number(i.quantidade),
+      0
+    );
+    if (!porDiaMap[dia]) porDiaMap[dia] = { vendas: 0, lucro: 0, compras: 0 };
+    porDiaMap[dia].vendas += totalVenda;
+    porDiaMap[dia].lucro += lucroVenda;
   }
-  const vendasPorDia = Object.entries(vendasPorDiaMap)
-    .map(([data, total]) => ({ data, total }))
+  for (const compra of compras) {
+    const dia = compra.data.toISOString().slice(0, 10);
+    const totalCompra = compra.itens.reduce(
+      (s, i) => s + Number(i.quantidade) * Number(i.custoUnitario),
+      0
+    );
+    if (!porDiaMap[dia]) porDiaMap[dia] = { vendas: 0, lucro: 0, compras: 0 };
+    porDiaMap[dia].compras += totalCompra;
+  }
+  const vendasPorDia = Object.entries(porDiaMap)
+    .map(([data, valores]) => ({ data, total: valores.vendas, ...valores }))
     .sort((a, b) => a.data.localeCompare(b.data));
 
   const contasReceberPendentes = await prisma.contaReceber.findMany({

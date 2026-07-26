@@ -167,14 +167,17 @@ export default function Dashboard() {
       </div>
 
       <div className="bg-white rounded shadow p-4 mb-6">
-        <div className="text-sm text-gray-500 mb-2">Vendas por Dia</div>
+        <div className="text-sm text-gray-500 mb-2">Vendas, Compras e Lucro por Dia</div>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={dados.vendasPorDia}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="data" />
             <YAxis />
             <Tooltip formatter={(value) => `R$ ${Number(value).toFixed(2)}`} />
-            <Line type="monotone" dataKey="total" stroke="#0f172a" strokeWidth={2} />
+            <Legend />
+            <Line type="monotone" dataKey="vendas" name="Vendas" stroke="#0f172a" strokeWidth={2} />
+            <Line type="monotone" dataKey="compras" name="Compras" stroke="#dc2626" strokeWidth={2} />
+            <Line type="monotone" dataKey="lucro" name="Lucro" stroke="#16a34a" strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
       </div>
