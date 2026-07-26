@@ -106,6 +106,14 @@ export default function Recibo() {
         </div>
       </div>
 
+      <div className="mt-16 flex justify-center">
+        <div className="w-80 text-center">
+          <div className="border-t border-black pt-2">
+            Assinatura do Cliente
+          </div>
+        </div>
+      </div>
+
       <div className="mt-12 pt-4 border-t border-gray-300 text-xs text-gray-500 text-center">
         Documento gerado em {new Date().toLocaleString('pt-BR')} — sem valor fiscal.
       </div>
