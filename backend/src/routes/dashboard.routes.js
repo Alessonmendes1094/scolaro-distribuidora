@@ -49,6 +49,17 @@ router.get('/', async (req, res) => {
     0
   );
 
+  const compras = await prisma.compra.findMany({
+    where: { data: { gte: dataInicio, lte: dataFim } },
+    include: { itens: true },
+  });
+
+  const totalComprado = compras.reduce(
+    (acc, compra) =>
+      acc + compra.itens.reduce((s, i) => s + Number(i.quantidade) * Number(i.custoUnitario), 0),
+    0
+  );
+
   const vendasPorDiaMap = {};
   for (const venda of vendas) {
     const dia = venda.data.toISOString().slice(0, 10);
@@ -88,6 +99,7 @@ router.get('/', async (req, res) => {
   res.json({
     periodo: { dataInicio, dataFim },
     totalVendido,
+    totalComprado,
     lucroTotal,
     vendasPorDia,
     contasReceber: {
