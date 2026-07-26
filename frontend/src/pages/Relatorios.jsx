@@ -14,19 +14,34 @@ export default function Relatorios() {
   const [dataFim, setDataFim] = useState('');
   const [empresaId, setEmpresaId] = useState('');
   const [empresas, setEmpresas] = useState([]);
+  const [clienteId, setClienteId] = useState('');
+  const [clientes, setClientes] = useState([]);
   const [resultado, setResultado] = useState([]);
 
   useEffect(() => {
     api.get('/empresas').then((res) => setEmpresas(res.data));
+    api.get('/clientes').then((res) => setClientes(res.data));
   }, []);
 
-  async function gerar() {
+  function montarParams() {
     const params = {};
     if (dataInicio) params.dataInicio = dataInicio;
     if (dataFim) params.dataFim = dataFim;
     if (empresaId) params.empresaId = empresaId;
-    const { data } = await api.get(`/relatorios/${aba}`, { params });
+    if (clienteId) params.clienteId = clienteId;
+    return params;
+  }
+
+  async function gerar() {
+    const { data } = await api.get(`/relatorios/${aba}`, { params: montarParams() });
     setResultado(data);
+  }
+
+  function imprimir() {
+    const params = new URLSearchParams(montarParams());
+    const clienteNome = clientes.find((c) => String(c.id) === String(clienteId))?.nome;
+    if (clienteNome) params.set('clienteNome', clienteNome);
+    window.open(`/relatorios/imprimir/${aba}?${params.toString()}`, '_blank');
   }
 
   function exportarCsv() {
@@ -122,6 +137,21 @@ export default function Relatorios() {
             onChange={(e) => setDataFim(e.target.value)}
           />
         </div>
+        <div>
+          <label className="block text-sm mb-1">Cliente</label>
+          <select
+            className="border rounded px-3 py-2"
+            value={clienteId}
+            onChange={(e) => setClienteId(e.target.value)}
+          >
+            <option value="">Todos os clientes</option>
+            {clientes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nome}
+              </option>
+            ))}
+          </select>
+        </div>
         <button
           onClick={gerar}
           className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800"
@@ -134,6 +164,13 @@ export default function Relatorios() {
           className="bg-white border px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
         >
           Exportar CSV
+        </button>
+        <button
+          onClick={imprimir}
+          disabled={resultado.length === 0}
+          className="bg-white border px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
+        >
+          Imprimir
         </button>
       </div>
 
@@ -175,16 +212,29 @@ export default function Relatorios() {
                 <thead className="text-left text-gray-500">
                   <tr>
                     <th className="py-1">Venda</th>
+                    <th className="py-1">Código Baixa</th>
                     <th className="py-1">Valor</th>
                     <th className="py-1">Pago em</th>
+                    <th className="py-1"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {grupo.pagamentos.map((p) => (
                     <tr key={p.contaId} className="border-t">
                       <td className="py-1">#{p.vendaId}</td>
+                      <td className="py-1">{p.codigoBaixa || '-'}</td>
                       <td className="py-1">R$ {p.valor.toFixed(2)}</td>
                       <td className="py-1">{new Date(p.pagoEm).toLocaleDateString('pt-BR')}</td>
+                      <td className="py-1">
+                        {p.baixaId && (
+                          <button
+                            onClick={() => window.open(`/recibo-pagamento/${p.baixaId}`, '_blank')}
+                            className="text-blue-600 hover:underline"
+                          >
+                            Recibo
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

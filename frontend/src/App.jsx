@@ -14,6 +14,8 @@ import ContasReceber from './pages/ContasReceber.jsx';
 import Caixa from './pages/Caixa.jsx';
 import Relatorios from './pages/Relatorios.jsx';
 import Recibo from './pages/Recibo.jsx';
+import ReciboPagamento from './pages/ReciboPagamento.jsx';
+import RelatorioImpressao from './pages/RelatorioImpressao.jsx';
 
 function RotaPrivada({ children }) {
   const { usuario } = useAuth();
@@ -30,6 +32,22 @@ export default function App() {
         element={
           <RotaPrivada>
             <Recibo />
+          </RotaPrivada>
+        }
+      />
+      <Route
+        path="/recibo-pagamento/:baixaId"
+        element={
+          <RotaPrivada>
+            <ReciboPagamento />
+          </RotaPrivada>
+        }
+      />
+      <Route
+        path="/relatorios/imprimir/:tipo"
+        element={
+          <RotaPrivada>
+            <RelatorioImpressao />
           </RotaPrivada>
         }
       />

@@ -1,7 +1,12 @@
 const { Router } = require('express');
+const { randomUUID } = require('crypto');
 const prisma = require('../lib/prisma');
 
 const router = Router();
+
+function gerarCodigoBaixa() {
+  return `BX-${randomUUID().split('-')[0].toUpperCase()}`;
+}
 
 async function atualizarAtrasadas() {
   await prisma.contaReceber.updateMany({
@@ -24,10 +29,24 @@ router.get('/', async (req, res) => {
 
   const contas = await prisma.contaReceber.findMany({
     where,
-    include: { venda: { include: { cliente: true } } },
+    include: { venda: { include: { cliente: true } }, baixa: true },
     orderBy: { vencimento: 'asc' },
   });
   res.json(contas);
+});
+
+// Detalhes de uma baixa (para imprimir o recibo de pagamento)
+router.get('/baixas/:id', async (req, res) => {
+  const baixa = await prisma.baixaRecebimento.findUnique({
+    where: { id: Number(req.params.id) },
+    include: {
+      contas: {
+        include: { venda: { include: { cliente: true, empresa: true } } },
+      },
+    },
+  });
+  if (!baixa) return res.status(404).json({ error: 'Baixa não encontrada' });
+  res.json(baixa);
 });
 
 // body: { dataPagamento? } — data em que o recebimento foi efetivamente feito (padrão: agora)
@@ -37,7 +56,7 @@ router.post('/:id/pagar', async (req, res) => {
   const dataEfetiva = dataPagamento ? new Date(dataPagamento) : new Date();
 
   try {
-    const conta = await prisma.$transaction(async (tx) => {
+    const resultado = await prisma.$transaction(async (tx) => {
       const contaAtual = await tx.contaReceber.findUnique({
         where: { id },
         include: { venda: { include: { cliente: true } } },
@@ -45,9 +64,17 @@ router.post('/:id/pagar', async (req, res) => {
       if (!contaAtual) throw new Error('Conta a receber não encontrada');
       if (contaAtual.status === 'PAGO') throw new Error('Conta já está paga');
 
+      const baixa = await tx.baixaRecebimento.create({
+        data: {
+          codigo: gerarCodigoBaixa(),
+          data: dataEfetiva,
+          valorTotal: contaAtual.valor,
+        },
+      });
+
       const contaAtualizada = await tx.contaReceber.update({
         where: { id },
-        data: { status: 'PAGO', pagoEm: dataEfetiva },
+        data: { status: 'PAGO', pagoEm: dataEfetiva, baixaId: baixa.id },
       });
 
       await tx.movimentoCaixa.create({
@@ -61,10 +88,10 @@ router.post('/:id/pagar', async (req, res) => {
         },
       });
 
-      return contaAtualizada;
+      return { conta: contaAtualizada, baixaId: baixa.id, codigoBaixa: baixa.codigo };
     });
 
-    res.json(conta);
+    res.json(resultado);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -101,7 +128,7 @@ router.post('/:id/cancelar-baixa', async (req, res) => {
 
       return tx.contaReceber.update({
         where: { id },
-        data: { valor: valorRestaurado, status: novoStatus, pagoEm: null },
+        data: { valor: valorRestaurado, status: novoStatus, pagoEm: null, baixaId: null },
       });
     });
 
@@ -111,11 +138,12 @@ router.post('/:id/cancelar-baixa', async (req, res) => {
   }
 });
 
-// body: { contaIds: [1,2,3], valorBaixado: 3000 }
+// body: { contaIds: [1,2,3], valorBaixado: 3000, dataPagamento? }
 // Baixa total ou parcial de uma ou mais pendências selecionadas.
 // Se valorBaixado < soma das contas selecionadas, quita o quanto for
 // possível (na ordem de vencimento) e divide a última conta atingida
-// em uma parte paga e uma parte que permanece pendente.
+// em uma parte paga e uma parte que permanece pendente. Todas as
+// contas quitadas nesta chamada recebem o mesmo código de baixa.
 router.post('/baixar', async (req, res) => {
   const { contaIds, valorBaixado, dataPagamento } = req.body;
 
@@ -148,6 +176,14 @@ router.post('/baixar', async (req, res) => {
         throw new Error('O valor da baixa não pode ser maior que a soma das pendências selecionadas');
       }
 
+      const baixa = await tx.baixaRecebimento.create({
+        data: {
+          codigo: gerarCodigoBaixa(),
+          data: dataEfetiva,
+          valorTotal: valor,
+        },
+      });
+
       let restante = valor;
       const contasQuitadas = [];
 
@@ -159,7 +195,7 @@ router.post('/baixar', async (req, res) => {
         if (restante >= valorConta) {
           const contaPaga = await tx.contaReceber.update({
             where: { id: conta.id },
-            data: { status: 'PAGO', pagoEm: dataEfetiva },
+            data: { status: 'PAGO', pagoEm: dataEfetiva, baixaId: baixa.id },
           });
           await tx.movimentoCaixa.create({
             data: {
@@ -179,7 +215,7 @@ router.post('/baixar', async (req, res) => {
 
           const contaPaga = await tx.contaReceber.update({
             where: { id: conta.id },
-            data: { valor: valorPago, status: 'PAGO', pagoEm: dataEfetiva },
+            data: { valor: valorPago, status: 'PAGO', pagoEm: dataEfetiva, baixaId: baixa.id },
           });
           await tx.movimentoCaixa.create({
             data: {
@@ -207,10 +243,10 @@ router.post('/baixar', async (req, res) => {
         }
       }
 
-      return contasQuitadas;
+      return { contasQuitadas, baixaId: baixa.id, codigoBaixa: baixa.codigo };
     });
 
-    res.json({ contasQuitadas: resultado });
+    res.json(resultado);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

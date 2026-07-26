@@ -16,10 +16,14 @@ function empresaWhere(query) {
   return query.empresaId ? { empresaId: Number(query.empresaId) } : {};
 }
 
+function clienteWhere(query) {
+  return query.clienteId ? { clienteId: Number(query.clienteId) } : {};
+}
+
 // Vendas por cliente no período
 router.get('/vendas-por-cliente', async (req, res) => {
   const vendas = await prisma.venda.findMany({
-    where: { ...periodoWhere(req.query), ...empresaWhere(req.query) },
+    where: { ...periodoWhere(req.query), ...empresaWhere(req.query), ...clienteWhere(req.query) },
     include: { cliente: true, itens: true },
     orderBy: { data: 'desc' },
   });
@@ -61,9 +65,12 @@ router.get('/pagamentos-recebidos', async (req, res) => {
     where: {
       status: 'PAGO',
       ...periodoWhere(req.query, 'pagoEm'),
-      ...(req.query.empresaId ? { venda: { empresaId: Number(req.query.empresaId) } } : {}),
+      venda: {
+        ...(req.query.empresaId ? { empresaId: Number(req.query.empresaId) } : {}),
+        ...clienteWhere(req.query),
+      },
     },
-    include: { venda: { include: { cliente: true } } },
+    include: { venda: { include: { cliente: true } }, baixa: true },
     orderBy: { pagoEm: 'desc' },
   });
 
@@ -83,6 +90,8 @@ router.get('/pagamentos-recebidos', async (req, res) => {
       vendaId: conta.vendaId,
       valor: Number(conta.valor),
       pagoEm: conta.pagoEm,
+      baixaId: conta.baixaId,
+      codigoBaixa: conta.baixa?.codigo,
     });
     porCliente[clienteId].valorTotal += Number(conta.valor);
   }
@@ -101,7 +110,10 @@ router.get('/pagamentos-pendentes', async (req, res) => {
     where: {
       status: { in: ['PENDENTE', 'ATRASADO'] },
       ...periodoWhere(req.query, 'vencimento'),
-      ...(req.query.empresaId ? { venda: { empresaId: Number(req.query.empresaId) } } : {}),
+      venda: {
+        ...(req.query.empresaId ? { empresaId: Number(req.query.empresaId) } : {}),
+        ...clienteWhere(req.query),
+      },
     },
     include: { venda: { include: { cliente: true } } },
     orderBy: { vencimento: 'asc' },

@@ -66,12 +66,15 @@ export default function ContasReceber() {
     if (!confirm(`Confirmar baixa de R$ ${valor.toFixed(2)} nas pendências selecionadas?`)) return;
 
     try {
-      await api.post('/contas-receber/baixar', {
+      const { data } = await api.post('/contas-receber/baixar', {
         contaIds: selecionadas,
         valorBaixado: valor,
         dataPagamento: dataRecebimento,
       });
       carregar();
+      if (data.baixaId) {
+        window.open(`/recibo-pagamento/${data.baixaId}`, '_blank');
+      }
     } catch (err) {
       setErro(err.response?.data?.error || 'Erro ao baixar pendências');
     }
@@ -178,7 +181,8 @@ export default function ContasReceber() {
             <th className="p-3">Valor</th>
             <th className="p-3">Vencimento</th>
             <th className="p-3">Status</th>
-            <th className="p-3 w-32">Ações</th>
+            <th className="p-3">Código Baixa</th>
+            <th className="p-3 w-40">Ações</th>
           </tr>
         </thead>
         <tbody className="text-sm">
@@ -200,7 +204,8 @@ export default function ContasReceber() {
               <td className="p-3">
                 <span className={`px-2 py-1 rounded text-xs ${badge[c.status]}`}>{c.status}</span>
               </td>
-              <td className="p-3">
+              <td className="p-3">{c.baixa?.codigo || '-'}</td>
+              <td className="p-3 space-x-2">
                 {c.status !== 'PAGO' ? (
                   <button
                     onClick={() => {
@@ -212,19 +217,27 @@ export default function ContasReceber() {
                     Marcar recebido
                   </button>
                 ) : (
-                  <button
-                    onClick={() => cancelarBaixa(c.id)}
-                    className="text-red-600 hover:underline"
-                  >
-                    Cancelar baixa
-                  </button>
+                  <>
+                    <button
+                      onClick={() => window.open(`/recibo-pagamento/${c.baixaId}`, '_blank')}
+                      className="text-blue-600 hover:underline"
+                    >
+                      Recibo
+                    </button>
+                    <button
+                      onClick={() => cancelarBaixa(c.id)}
+                      className="text-red-600 hover:underline"
+                    >
+                      Cancelar baixa
+                    </button>
+                  </>
                 )}
               </td>
             </tr>
           ))}
           {lista.length === 0 && (
             <tr>
-              <td colSpan={7} className="p-3 text-center text-gray-400">
+              <td colSpan={8} className="p-3 text-center text-gray-400">
                 Nenhuma conta a receber
               </td>
             </tr>

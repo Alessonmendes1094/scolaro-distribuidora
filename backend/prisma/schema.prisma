@@ -153,8 +153,19 @@ model ContaReceber {
   vencimento  DateTime
   status      StatusConta @default(PENDENTE)
   pagoEm      DateTime?
+  baixa       BaixaRecebimento? @relation(fields: [baixaId], references: [id])
+  baixaId     Int?
   movimentos  MovimentoCaixa[]
   createdAt   DateTime    @default(now())
+}
+
+model BaixaRecebimento {
+  id         Int            @id @default(autoincrement())
+  codigo     String         @unique
+  data       DateTime       @default(now())
+  valorTotal Decimal        @db.Decimal(12, 2)
+  contas     ContaReceber[]
+  createdAt  DateTime       @default(now())
 }
 
 model ContaPagar {
