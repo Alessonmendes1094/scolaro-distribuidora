@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../lib/api';
 import { baixarCsv } from '../lib/csv';
 import { baixarPdf } from '../lib/pdf';
@@ -12,6 +13,7 @@ const ABAS = [
   { id: 'pagamentos-pendentes', label: 'Pagamentos Pendentes' },
   { id: 'resumo-mensal', label: 'Resumo Mensal por Cliente' },
   { id: 'resumo-anual', label: 'Resumo Anual por Cliente' },
+  { id: 'perdas', label: 'Perdas (Inadimplência)' },
 ];
 
 const TITULOS = {
@@ -20,6 +22,7 @@ const TITULOS = {
   'pagamentos-pendentes': 'Relatório de Pagamentos Pendentes',
   'resumo-mensal': 'Resumo Mensal por Cliente',
   'resumo-anual': 'Resumo Anual por Cliente',
+  perdas: 'Relatório de Perdas (Inadimplência)',
 };
 
 const NOMES_MESES = [
@@ -43,7 +46,11 @@ function StatusPendenciaBadge({ status, diasAtraso }) {
 }
 
 export default function Relatorios() {
-  const [aba, setAba] = useState(ABAS[0].id);
+  const [searchParams] = useSearchParams();
+  const abaInicial = ABAS.some((a) => a.id === searchParams.get('aba'))
+    ? searchParams.get('aba')
+    : ABAS[0].id;
+  const [aba, setAba] = useState(abaInicial);
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [empresaId, setEmpresaId] = useState('');
@@ -169,7 +176,7 @@ export default function Relatorios() {
             codigoBaixa: p.codigoBaixa || '',
           });
         }
-      } else {
+      } else if (aba === 'pagamentos-pendentes') {
         for (const p of grupo.pendencias) {
           linhas.push({
             cliente: grupo.clienteNome,
@@ -180,6 +187,19 @@ export default function Relatorios() {
             vencimento: new Date(p.vencimento).toLocaleDateString('pt-BR'),
             status: STATUS_LABEL[p.status] || p.status,
             diasAtraso: p.diasAtraso ?? '',
+          });
+        }
+      } else {
+        for (const p of grupo.perdas) {
+          linhas.push({
+            cliente: grupo.clienteNome,
+            vendaId: p.vendaId,
+            dataVenda: new Date(p.dataVenda).toLocaleDateString('pt-BR'),
+            valorVenda: p.valorVenda.toFixed(2),
+            valorPerdido: p.valor.toFixed(2),
+            vencimentoOriginal: new Date(p.vencimentoOriginal).toLocaleDateString('pt-BR'),
+            perdidoEm: p.perdidoEm ? new Date(p.perdidoEm).toLocaleDateString('pt-BR') : '',
+            motivo: p.motivo || '',
           });
         }
       }
@@ -285,7 +305,7 @@ export default function Relatorios() {
           ]);
         }
       }
-    } else {
+    } else if (aba === 'pagamentos-pendentes') {
       colunas = ['Cliente', 'Venda', 'Data Venda', 'Valor Venda', 'Valor Pendente', 'Vencimento', 'Status'];
       for (const grupo of resultado) {
         for (const p of grupo.pendencias) {
@@ -298,6 +318,22 @@ export default function Relatorios() {
             `R$ ${p.valor.toFixed(2)}`,
             new Date(p.vencimento).toLocaleDateString('pt-BR'),
             p.diasAtraso != null ? `${statusTexto} (${p.diasAtraso}d)` : statusTexto,
+          ]);
+        }
+      }
+    } else {
+      colunas = ['Cliente', 'Venda', 'Data Venda', 'Valor Venda', 'Valor Perdido', 'Venc. Original', 'Perdido em', 'Motivo'];
+      for (const grupo of resultado) {
+        for (const p of grupo.perdas) {
+          linhas.push([
+            grupo.clienteNome,
+            `#${p.vendaId}`,
+            new Date(p.dataVenda).toLocaleDateString('pt-BR'),
+            `R$ ${p.valorVenda.toFixed(2)}`,
+            `R$ ${p.valor.toFixed(2)}`,
+            new Date(p.vencimentoOriginal).toLocaleDateString('pt-BR'),
+            p.perdidoEm ? new Date(p.perdidoEm).toLocaleDateString('pt-BR') : '-',
+            p.motivo || '-',
           ]);
         }
       }
@@ -449,9 +485,14 @@ export default function Relatorios() {
         </button>
         <button
           onClick={imprimir}
-          disabled={resultado.length === 0 || aba === 'resumo-mensal' || aba === 'resumo-anual'}
+          disabled={
+            resultado.length === 0 ||
+            aba === 'resumo-mensal' ||
+            aba === 'resumo-anual' ||
+            aba === 'perdas'
+          }
           title={
-            aba === 'resumo-mensal' || aba === 'resumo-anual'
+            aba === 'resumo-mensal' || aba === 'resumo-anual' || aba === 'perdas'
               ? 'Use "Baixar PDF" para este relatório'
               : undefined
           }
@@ -699,6 +740,48 @@ export default function Relatorios() {
                       <td className="py-1">
                         <StatusPendenciaBadge status={p.status} diasAtraso={p.diasAtraso} />
                       </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {aba === 'perdas' && (
+              <table className="w-full text-sm">
+                <thead className="text-left text-gray-500">
+                  <tr>
+                    <th className="py-1">Venda</th>
+                    <th className="py-1">Data Venda</th>
+                    <th className="py-1">Valor Venda</th>
+                    <th className="py-1">Valor Perdido</th>
+                    <th className="py-1">Venc. Original</th>
+                    <th className="py-1">Perdido em</th>
+                    <th className="py-1">Motivo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {grupo.perdas.map((p) => (
+                    <tr key={p.contaId} className="border-t">
+                      <td className="py-1">
+                        <button
+                          onClick={() => setVendaDetalheId(p.vendaId)}
+                          className="text-blue-600 hover:underline"
+                        >
+                          #{p.vendaId}
+                        </button>
+                      </td>
+                      <td className="py-1">{new Date(p.dataVenda).toLocaleDateString('pt-BR')}</td>
+                      <td className="py-1">R$ {p.valorVenda.toFixed(2)}</td>
+                      <td className="py-1 font-medium text-gray-700">
+                        R$ {p.valor.toFixed(2)}
+                      </td>
+                      <td className="py-1">
+                        {new Date(p.vencimentoOriginal).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="py-1">
+                        {p.perdidoEm ? new Date(p.perdidoEm).toLocaleDateString('pt-BR') : '-'}
+                      </td>
+                      <td className="py-1">{p.motivo || '-'}</td>
                     </tr>
                   ))}
                 </tbody>

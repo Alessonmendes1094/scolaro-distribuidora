@@ -128,6 +128,15 @@ router.get('/', async (req, res) => {
     .filter((c) => c.status === 'ATRASADO')
     .reduce((acc, c) => acc + Number(c.valor), 0);
 
+  const contasPerdidas = await prisma.contaReceber.findMany({
+    where: {
+      status: 'PERDIDO',
+      ...(empresaId ? { venda: { empresaId: Number(empresaId) } } : {}),
+    },
+  });
+  const totalPerdido = contasPerdidas.reduce((acc, c) => acc + Number(c.valor), 0);
+  const quantidadePerdas = contasPerdidas.length;
+
   res.json({
     periodo: { dataInicio, dataFim },
     totalVendido,
@@ -145,6 +154,10 @@ router.get('/', async (req, res) => {
       pendente: totalPagarPendente,
       atrasado: totalPagarAtrasado,
       total: totalPagarPendente + totalPagarAtrasado,
+    },
+    perdas: {
+      total: totalPerdido,
+      quantidade: quantidadePerdas,
     },
   });
 });

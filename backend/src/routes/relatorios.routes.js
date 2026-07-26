@@ -23,6 +23,7 @@ function clienteWhere(query) {
 function statusPendenciaVenda(venda) {
   if (venda.formaPagamento === 'A_VISTA') return 'PAGO';
   if (!venda.contasReceber || venda.contasReceber.length === 0) return 'PAGO';
+  if (venda.contasReceber.some((c) => c.status === 'PERDIDO')) return 'PERDIDO';
   if (venda.contasReceber.some((c) => c.status === 'ATRASADO')) return 'ATRASADO';
   if (venda.contasReceber.every((c) => c.status === 'PAGO')) return 'PAGO';
   return 'PENDENTE';
@@ -184,6 +185,52 @@ router.get('/pagamentos-pendentes', async (req, res) => {
       vencimento: conta.vencimento,
       status: conta.status,
       diasAtraso: conta.status === 'ATRASADO' ? diasAtraso(conta.vencimento) : null,
+    });
+    porCliente[clienteId].valorTotal += Number(conta.valor);
+  }
+
+  res.json(Object.values(porCliente));
+});
+
+// Pendências financeiras marcadas como perdidas, por cliente
+router.get('/perdas', async (req, res) => {
+  const contas = await prisma.contaReceber.findMany({
+    where: {
+      status: 'PERDIDO',
+      ...periodoWhere(req.query, 'perdidoEm'),
+      venda: {
+        ...(req.query.empresaId ? { empresaId: Number(req.query.empresaId) } : {}),
+        ...clienteWhere(req.query),
+      },
+    },
+    include: { venda: { include: { cliente: true, itens: true } } },
+    orderBy: { perdidoEm: 'desc' },
+  });
+
+  const porCliente = {};
+  for (const conta of contas) {
+    const clienteId = conta.venda.clienteId;
+    const valorVenda = conta.venda.itens.reduce(
+      (s, i) => s + Number(i.quantidade) * Number(i.precoUnitario),
+      0
+    );
+    if (!porCliente[clienteId]) {
+      porCliente[clienteId] = {
+        clienteId,
+        clienteNome: conta.venda.cliente.nome,
+        perdas: [],
+        valorTotal: 0,
+      };
+    }
+    porCliente[clienteId].perdas.push({
+      contaId: conta.id,
+      vendaId: conta.vendaId,
+      dataVenda: conta.venda.data,
+      valorVenda,
+      valor: Number(conta.valor),
+      vencimentoOriginal: conta.vencimento,
+      perdidoEm: conta.perdidoEm,
+      motivo: conta.motivoPerda,
     });
     porCliente[clienteId].valorTotal += Number(conta.valor);
   }

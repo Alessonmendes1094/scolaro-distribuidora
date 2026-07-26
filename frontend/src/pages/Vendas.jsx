@@ -51,6 +51,16 @@ export default function Vendas() {
     }
   }, [searchParams, empresas]);
 
+  useEffect(() => {
+    const editarId = searchParams.get('editar');
+    if (editarId && empresas.length > 0) {
+      api.get(`/vendas/${editarId}`).then((res) => {
+        abrirEdicao(res.data);
+      });
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, empresas]);
+
   function abrirNovo() {
     setEditandoId(null);
     setEmpresaId(empresas[0]?.id ? String(empresas[0].id) : '');

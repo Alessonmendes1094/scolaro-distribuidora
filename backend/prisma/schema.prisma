@@ -19,6 +19,7 @@ enum StatusConta {
   PENDENTE
   PAGO
   ATRASADO
+  PERDIDO
 }
 
 enum TipoMovimento {
@@ -156,6 +157,8 @@ model ContaReceber {
   vencimento  DateTime
   status      StatusConta @default(PENDENTE)
   pagoEm      DateTime?
+  perdidoEm   DateTime?
+  motivoPerda String?
   baixa       BaixaRecebimento? @relation(fields: [baixaId], references: [id])
   baixaId     Int?
   movimentos  MovimentoCaixa[]

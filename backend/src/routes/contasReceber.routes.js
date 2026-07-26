@@ -72,6 +72,9 @@ router.post('/:id/pagar', async (req, res) => {
       });
       if (!contaAtual) throw new Error('Conta a receber não encontrada');
       if (contaAtual.status === 'PAGO') throw new Error('Conta já está paga');
+      if (contaAtual.status === 'PERDIDO') {
+        throw new Error('Conta marcada como perdida. Reverta a perda antes de registrar o pagamento.');
+      }
 
       const baixa = await tx.baixaRecebimento.create({
         data: {
@@ -147,6 +150,53 @@ router.post('/:id/cancelar-baixa', async (req, res) => {
   }
 });
 
+// body: { motivo? } — marca a pendência como perdida (cliente não pagou e nega a dívida)
+router.post('/:id/perda', async (req, res) => {
+  const id = Number(req.params.id);
+  const { motivo } = req.body;
+
+  try {
+    const conta = await prisma.$transaction(async (tx) => {
+      const contaAtual = await tx.contaReceber.findUnique({ where: { id } });
+      if (!contaAtual) throw new Error('Conta a receber não encontrada');
+      if (contaAtual.status === 'PAGO') throw new Error('Conta já está paga, não pode ser marcada como perdida');
+      if (contaAtual.status === 'PERDIDO') throw new Error('Conta já está marcada como perdida');
+
+      return tx.contaReceber.update({
+        where: { id },
+        data: { status: 'PERDIDO', perdidoEm: new Date(), motivoPerda: motivo || null },
+      });
+    });
+
+    res.json(conta);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post('/:id/reverter-perda', async (req, res) => {
+  const id = Number(req.params.id);
+
+  try {
+    const conta = await prisma.$transaction(async (tx) => {
+      const contaAtual = await tx.contaReceber.findUnique({ where: { id } });
+      if (!contaAtual) throw new Error('Conta a receber não encontrada');
+      if (contaAtual.status !== 'PERDIDO') throw new Error('Esta conta não está marcada como perdida');
+
+      const novoStatus = contaAtual.vencimento < new Date() ? 'ATRASADO' : 'PENDENTE';
+
+      return tx.contaReceber.update({
+        where: { id },
+        data: { status: novoStatus, perdidoEm: null, motivoPerda: null },
+      });
+    });
+
+    res.json(conta);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // body: { contaIds: [1,2,3], valorBaixado: 3000, dataPagamento? }
 // Baixa total ou parcial de uma ou mais pendências selecionadas.
 // Se valorBaixado < soma das contas selecionadas, quita o quanto for
@@ -178,6 +228,9 @@ router.post('/baixar', async (req, res) => {
       }
       if (contas.some((c) => c.status === 'PAGO')) {
         throw new Error('Uma ou mais pendências selecionadas já estão pagas');
+      }
+      if (contas.some((c) => c.status === 'PERDIDO')) {
+        throw new Error('Uma ou mais pendências selecionadas estão marcadas como perdidas');
       }
 
       const somaSelecionada = contas.reduce((acc, c) => acc + Number(c.valor), 0);

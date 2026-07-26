@@ -1,13 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import api from '../lib/api';
-import { STATUS_LABEL } from '../lib/status';
+import { STATUS_LABEL, STATUS_BADGE } from '../lib/status';
 import VendaDetalheModal from '../components/VendaDetalheModal.jsx';
-
-const badge = {
-  PENDENTE: 'bg-yellow-100 text-yellow-800',
-  ATRASADO: 'bg-red-100 text-red-800',
-  PAGO: 'bg-green-100 text-green-800',
-};
 
 export default function ContasReceber() {
   const [lista, setLista] = useState([]);
@@ -93,7 +87,32 @@ export default function ContasReceber() {
     }
   }
 
-  const pendentesSelecionaveis = lista.filter((c) => c.status !== 'PAGO');
+  async function marcarPerdido(id) {
+    const motivo = prompt(
+      'Cliente não pagou e nega a dívida. Descreva o motivo (opcional):'
+    );
+    if (motivo === null) return;
+    try {
+      await api.post(`/contas-receber/${id}/perda`, { motivo: motivo || undefined });
+      carregar();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erro ao marcar como perdido');
+    }
+  }
+
+  async function reverterPerda(id) {
+    if (!confirm('Reverter a perda desta conta? Ela voltará a ficar pendente/atrasada.')) return;
+    try {
+      await api.post(`/contas-receber/${id}/reverter-perda`);
+      carregar();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erro ao reverter perda');
+    }
+  }
+
+  const pendentesSelecionaveis = lista.filter(
+    (c) => c.status !== 'PAGO' && c.status !== 'PERDIDO'
+  );
 
   return (
     <div>
@@ -192,7 +211,7 @@ export default function ContasReceber() {
           {lista.map((c) => (
             <tr key={c.id} className="border-t">
               <td className="p-3">
-                {c.status !== 'PAGO' && (
+                {c.status !== 'PAGO' && c.status !== 'PERDIDO' && (
                   <input
                     type="checkbox"
                     checked={selecionadas.includes(c.id)}
@@ -212,23 +231,16 @@ export default function ContasReceber() {
               <td className="p-3">R$ {Number(c.valor).toFixed(2)}</td>
               <td className="p-3">{new Date(c.vencimento).toLocaleDateString('pt-BR')}</td>
               <td className="p-3">
-                <span className={`px-2 py-1 rounded text-xs ${badge[c.status]}`}>
+                <span className={`px-2 py-1 rounded text-xs ${STATUS_BADGE[c.status]}`}>
                   {STATUS_LABEL[c.status]}
                 </span>
+                {c.status === 'PERDIDO' && c.motivoPerda && (
+                  <div className="text-xs text-gray-400 mt-1 max-w-[180px]">{c.motivoPerda}</div>
+                )}
               </td>
               <td className="p-3">{c.baixa?.codigo || '-'}</td>
               <td className="p-3 space-x-2">
-                {c.status !== 'PAGO' ? (
-                  <button
-                    onClick={() => {
-                      setSelecionadas([c.id]);
-                      setValorBaixa(Number(c.valor).toFixed(2));
-                    }}
-                    className="text-green-700 hover:underline"
-                  >
-                    Marcar recebido
-                  </button>
-                ) : (
+                {c.status === 'PAGO' && (
                   <>
                     {c.baixaId && (
                       <button
@@ -243,6 +255,33 @@ export default function ContasReceber() {
                       className="text-red-600 hover:underline"
                     >
                       Cancelar baixa
+                    </button>
+                  </>
+                )}
+                {c.status === 'PERDIDO' && (
+                  <button
+                    onClick={() => reverterPerda(c.id)}
+                    className="text-blue-600 hover:underline"
+                  >
+                    Reverter perda
+                  </button>
+                )}
+                {(c.status === 'PENDENTE' || c.status === 'ATRASADO') && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setSelecionadas([c.id]);
+                        setValorBaixa(Number(c.valor).toFixed(2));
+                      }}
+                      className="text-green-700 hover:underline"
+                    >
+                      Marcar recebido
+                    </button>
+                    <button
+                      onClick={() => marcarPerdido(c.id)}
+                      className="text-gray-600 hover:underline"
+                    >
+                      Marcar perdido
                     </button>
                   </>
                 )}

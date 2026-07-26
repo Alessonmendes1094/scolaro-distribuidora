@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import Modal from './Modal.jsx';
 import { STATUS_LABEL, STATUS_BADGE } from '../lib/status';
 import { FORMA_PAGAMENTO_LABEL } from '../lib/formaPagamento';
 
 export default function VendaDetalheModal({ vendaId, onClose }) {
+  const navigate = useNavigate();
   const [venda, setVenda] = useState(null);
   const [erro, setErro] = useState('');
 
@@ -21,6 +23,13 @@ export default function VendaDetalheModal({ vendaId, onClose }) {
   const total = venda
     ? venda.itens.reduce((acc, i) => acc + Number(i.quantidade) * Number(i.precoUnitario), 0)
     : 0;
+
+  const podeEditar = venda && !venda.contasReceber?.some((c) => c.status === 'PAGO');
+
+  function editarVenda() {
+    navigate(`/vendas?editar=${venda.id}`);
+    onClose();
+  }
 
   return (
     <Modal open={!!vendaId} title={`Venda #${vendaId}`} onClose={onClose}>
@@ -95,12 +104,22 @@ export default function VendaDetalheModal({ vendaId, onClose }) {
             <span>R$ {total.toFixed(2)}</span>
           </div>
 
-          <button
-            onClick={() => window.open(`/recibo/${venda.id}`, '_blank')}
-            className="w-full bg-slate-900 text-white rounded px-3 py-2 hover:bg-slate-800"
-          >
-            Imprimir / Baixar Recibo
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => window.open(`/recibo/${venda.id}`, '_blank')}
+              className="flex-1 bg-slate-900 text-white rounded px-3 py-2 hover:bg-slate-800"
+            >
+              Imprimir / Baixar Recibo
+            </button>
+            {podeEditar && (
+              <button
+                onClick={editarVenda}
+                className="flex-1 bg-white border border-slate-900 text-slate-900 rounded px-3 py-2 hover:bg-gray-50"
+              >
+                Editar Venda
+              </button>
+            )}
+          </div>
         </div>
       )}
     </Modal>

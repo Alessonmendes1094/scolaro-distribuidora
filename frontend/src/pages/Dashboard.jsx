@@ -139,7 +139,7 @@ export default function Dashboard() {
       </div>
 
       <div className="text-sm font-semibold text-gray-500 mb-2">Pendências (todas as datas)</div>
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded shadow p-4">
           <div className="text-sm font-medium text-gray-700 mb-3">Contas a Receber</div>
           <div className="grid grid-cols-3 gap-2">
@@ -181,6 +181,21 @@ export default function Dashboard() {
               <div className="text-lg font-bold">R$ {dados.contasPagar.total.toFixed(2)}</div>
             </div>
           </div>
+        </div>
+        <div className="bg-gray-800 text-white rounded shadow p-4">
+          <div className="text-sm font-medium mb-3">Perdas (Inadimplência)</div>
+          <div className="text-2xl font-bold">R$ {dados.perdas.total.toFixed(2)}</div>
+          <div className="text-xs text-gray-300 mt-1">
+            {dados.perdas.quantidade}{' '}
+            {dados.perdas.quantidade === 1 ? 'pendência marcada' : 'pendências marcadas'} como
+            perdida
+          </div>
+          <button
+            onClick={() => navigate('/relatorios?aba=perdas')}
+            className="text-xs text-blue-300 hover:underline mt-2"
+          >
+            Ver relatório de perdas
+          </button>
         </div>
       </div>
 
