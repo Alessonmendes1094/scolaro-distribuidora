@@ -12,6 +12,7 @@ import ContasPagar from './pages/ContasPagar.jsx';
 import ContasReceber from './pages/ContasReceber.jsx';
 import Caixa from './pages/Caixa.jsx';
 import Relatorios from './pages/Relatorios.jsx';
+import Recibo from './pages/Recibo.jsx';
 
 function RotaPrivada({ children }) {
   const { usuario } = useAuth();
@@ -23,6 +24,14 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route
+        path="/recibo/:vendaId"
+        element={
+          <RotaPrivada>
+            <Recibo />
+          </RotaPrivada>
+        }
+      />
       <Route
         path="/"
         element={

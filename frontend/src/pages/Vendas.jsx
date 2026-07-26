@@ -88,7 +88,7 @@ export default function Vendas() {
     e.preventDefault();
     setErro('');
     try {
-      await api.post('/vendas', {
+      const { data: vendaCriada } = await api.post('/vendas', {
         clienteId: Number(clienteId),
         data,
         formaPagamento,
@@ -101,6 +101,7 @@ export default function Vendas() {
       });
       setModalAberto(false);
       carregar();
+      window.open(`/recibo/${vendaCriada.id}`, '_blank');
     } catch (err) {
       setErro(err.response?.data?.error || 'Erro ao salvar venda');
     }
@@ -126,6 +127,7 @@ export default function Vendas() {
             <th className="p-3">Forma Pagamento</th>
             <th className="p-3">Itens</th>
             <th className="p-3">Total</th>
+            <th className="p-3 w-24">Ações</th>
           </tr>
         </thead>
         <tbody className="text-sm">
@@ -143,12 +145,20 @@ export default function Vendas() {
                   {v.itens.map((i) => `${i.produto.nome} (${Number(i.quantidade)})`).join(', ')}
                 </td>
                 <td className="p-3">R$ {total.toFixed(2)}</td>
+                <td className="p-3">
+                  <button
+                    onClick={() => window.open(`/recibo/${v.id}`, '_blank')}
+                    className="text-blue-600 hover:underline"
+                  >
+                    Imprimir
+                  </button>
+                </td>
               </tr>
             );
           })}
           {lista.length === 0 && (
             <tr>
-              <td colSpan={5} className="p-3 text-center text-gray-400">
+              <td colSpan={6} className="p-3 text-center text-gray-400">
                 Nenhuma venda registrada
               </td>
             </tr>
