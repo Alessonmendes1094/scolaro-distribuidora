@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   LineChart,
   Line,
@@ -19,6 +20,7 @@ function primeiroDiaMes() {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [dataInicio, setDataInicio] = useState(primeiroDiaMes());
   const [dataFim, setDataFim] = useState(() => new Date().toISOString().slice(0, 10));
   const [empresaId, setEmpresaId] = useState('');
@@ -54,7 +56,23 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate('/vendas?nova=1')}
+            className="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800"
+          >
+            + Nova Venda
+          </button>
+          <button
+            onClick={() => navigate('/compras?nova=1')}
+            className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800"
+          >
+            + Nova Compra
+          </button>
+        </div>
+      </div>
 
       <div className="flex gap-3 items-end mb-6">
         <div>

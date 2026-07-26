@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../lib/api';
 import Modal from '../components/Modal.jsx';
 import CompraDetalheModal from '../components/CompraDetalheModal.jsx';
@@ -7,6 +8,7 @@ import { FORMA_PAGAMENTO_LABEL, FORMA_PAGAMENTO_OPCOES, FORMAS_PAGAMENTO_IMEDIAT
 const ITEM_VAZIO = { produtoId: '', quantidade: '', custoUnitario: '' };
 
 export default function Compras() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [lista, setLista] = useState([]);
   const [fornecedores, setFornecedores] = useState([]);
   const [produtos, setProdutos] = useState([]);
@@ -35,6 +37,13 @@ export default function Compras() {
   useEffect(() => {
     carregar();
   }, []);
+
+  useEffect(() => {
+    if (searchParams.get('nova')) {
+      abrirNovo();
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams]);
 
   function abrirNovo() {
     setEditandoId(null);
