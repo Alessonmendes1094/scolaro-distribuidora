@@ -1,0 +1,47 @@
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+
+const authMiddleware = require('./middleware/auth');
+
+const authRoutes = require('./routes/auth.routes');
+const fornecedoresRoutes = require('./routes/fornecedores.routes');
+const produtosRoutes = require('./routes/produtos.routes');
+const clientesRoutes = require('./routes/clientes.routes');
+const comprasRoutes = require('./routes/compras.routes');
+const vendasRoutes = require('./routes/vendas.routes');
+const contasPagarRoutes = require('./routes/contasPagar.routes');
+const contasReceberRoutes = require('./routes/contasReceber.routes');
+const caixaRoutes = require('./routes/caixa.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
+const relatoriosRoutes = require('./routes/relatorios.routes');
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+app.use('/auth', authRoutes);
+
+app.use('/fornecedores', authMiddleware, fornecedoresRoutes);
+app.use('/produtos', authMiddleware, produtosRoutes);
+app.use('/clientes', authMiddleware, clientesRoutes);
+app.use('/compras', authMiddleware, comprasRoutes);
+app.use('/vendas', authMiddleware, vendasRoutes);
+app.use('/contas-pagar', authMiddleware, contasPagarRoutes);
+app.use('/contas-receber', authMiddleware, contasReceberRoutes);
+app.use('/caixa', authMiddleware, caixaRoutes);
+app.use('/dashboard', authMiddleware, dashboardRoutes);
+app.use('/relatorios', authMiddleware, relatoriosRoutes);
+
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ error: 'Erro interno do servidor' });
+});
+
+const PORT = process.env.PORT || 3333;
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});

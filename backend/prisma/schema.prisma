@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FormaPagamento {
+  FIADO
+  BOLETO
+  A_VISTA
+}
+
+enum StatusConta {
+  PENDENTE
+  PAGO
+  ATRASADO
+}
+
+enum TipoMovimento {
+  ENTRADA
+  SAIDA
+}
+
+enum CategoriaDespesa {
+  COMBUSTIVEL
+  MANUTENCAO
+  IMPOSTO
+  OUTROS
+}
+
+enum Role {
+  ADMIN
+  USUARIO
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String   @unique
+  senha     String
+  role      Role     @default(USUARIO)
+  createdAt DateTime @default(now())
+}
+
+model Fornecedor {
+  id        Int       @id @default(autoincrement())
+  nome      String
+  telefone  String?
+  createdAt DateTime  @default(now())
+  compras   Compra[]
+}
+
+model Produto {
+  id            Int           @id @default(autoincrement())
+  nome          String
+  unidade       String
+  estoqueAtual  Decimal       @default(0) @db.Decimal(12, 3)
+  precoVenda    Decimal       @db.Decimal(12, 2)
+  createdAt     DateTime      @default(now())
+  itensCompra   ItemCompra[]
+  itensVenda    ItemVenda[]
+}
+
+model Cliente {
+  id           Int       @id @default(autoincrement())
+  cnpj         String    @unique
+  nome         String
+  endereco     String?
+  responsavel  String?
+  telefone     String?
+  createdAt    DateTime  @default(now())
+  vendas       Venda[]
+}
+
+model Compra {
+  id         Int          @id @default(autoincrement())
+  fornecedor   Fornecedor @relation(fields: [fornecedorId], references: [id])
+  fornecedorId Int
+  data       DateTime
+  comNota    Boolean      @default(false)
+  itens      ItemCompra[]
+  createdAt  DateTime     @default(now())
+}
+
+model ItemCompra {
+  id           Int      @id @default(autoincrement())
+  compra       Compra   @relation(fields: [compraId], references: [id], onDelete: Cascade)
+  compraId     Int
+  produto      Produto  @relation(fields: [produtoId], references: [id])
+  produtoId    Int
+  quantidade   Decimal  @db.Decimal(12, 3)
+  custoUnitario Decimal @db.Decimal(12, 2)
+}
+
+model Venda {
+  id             Int             @id @default(autoincrement())
+  cliente        Cliente         @relation(fields: [clienteId], references: [id])
+  clienteId      Int
+  data           DateTime
+  formaPagamento FormaPagamento
+  itens          ItemVenda[]
+  contasReceber  ContaReceber[]
+  movimentos     MovimentoCaixa[]
+  createdAt      DateTime        @default(now())
+}
+
+model ItemVenda {
+  id            Int     @id @default(autoincrement())
+  venda         Venda   @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+  vendaId       Int
+  produto       Produto @relation(fields: [produtoId], references: [id])
+  produtoId     Int
+  quantidade    Decimal @db.Decimal(12, 3)
+  precoUnitario Decimal @db.Decimal(12, 2)
+}
+
+model ContaReceber {
+  id          Int         @id @default(autoincrement())
+  venda       Venda       @relation(fields: [vendaId], references: [id])
+  vendaId     Int
+  valor       Decimal     @db.Decimal(12, 2)
+  vencimento  DateTime
+  status      StatusConta @default(PENDENTE)
+  pagoEm      DateTime?
+  movimentos  MovimentoCaixa[]
+  createdAt   DateTime    @default(now())
+}
+
+model ContaPagar {
+  id          Int              @id @default(autoincrement())
+  descricao   String
+  categoria   CategoriaDespesa @default(OUTROS)
+  valor       Decimal          @db.Decimal(12, 2)
+  vencimento  DateTime
+  status      StatusConta      @default(PENDENTE)
+  pagoEm      DateTime?
+  movimentos  MovimentoCaixa[]
+  createdAt   DateTime         @default(now())
+}
+
+model MovimentoCaixa {
+  id             Int           @id @default(autoincrement())
+  tipo           TipoMovimento
+  descricao      String
+  valor          Decimal       @db.Decimal(12, 2)
+  data           DateTime      @default(now())
+
+  venda          Venda?        @relation(fields: [vendaId], references: [id])
+  vendaId        Int?
+
+  contaReceber   ContaReceber? @relation(fields: [contaReceberId], references: [id])
+  contaReceberId Int?
+
+  contaPagar     ContaPagar?   @relation(fields: [contaPagarId], references: [id])
+  contaPagarId   Int?
+
+  createdAt      DateTime      @default(now())
+}
