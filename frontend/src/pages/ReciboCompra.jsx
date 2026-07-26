@@ -7,6 +7,7 @@ export default function ReciboCompra() {
   const { compraId } = useParams();
   const [compra, setCompra] = useState(null);
   const [erro, setErro] = useState('');
+  const [exibirFormaPagamento, setExibirFormaPagamento] = useState(true);
 
   useEffect(() => {
     async function carregar() {
@@ -29,11 +30,17 @@ export default function ReciboCompra() {
     0
   );
 
+  function handleImprimir() {
+    const mostrar = confirm('Deseja exibir a forma de pagamento no recibo impresso?');
+    setExibirFormaPagamento(mostrar);
+    setTimeout(() => window.print(), 100);
+  }
+
   return (
     <div className="min-h-screen bg-white text-black p-8 max-w-2xl mx-auto text-sm">
       <div className="no-print flex justify-end mb-4">
         <button
-          onClick={() => window.print()}
+          onClick={handleImprimir}
           className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800"
         >
           Imprimir
@@ -57,12 +64,16 @@ export default function ReciboCompra() {
         <div className="text-right">
           <div className="font-semibold">Data da Compra</div>
           <div>{new Date(compra.data).toLocaleDateString('pt-BR')}</div>
-          <div className="font-semibold mt-2">Forma de Pagamento</div>
-          <div>{FORMA_PAGAMENTO_LABEL[compra.formaPagamento]}</div>
-          {contaPagar && (
-            <div className="mt-1">
-              Vencimento: {new Date(contaPagar.vencimento).toLocaleDateString('pt-BR')}
-            </div>
+          {exibirFormaPagamento && (
+            <>
+              <div className="font-semibold mt-2">Forma de Pagamento</div>
+              <div>{FORMA_PAGAMENTO_LABEL[compra.formaPagamento]}</div>
+              {contaPagar && (
+                <div className="mt-1">
+                  Vencimento: {new Date(contaPagar.vencimento).toLocaleDateString('pt-BR')}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
