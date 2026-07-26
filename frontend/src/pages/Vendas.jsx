@@ -15,6 +15,7 @@ export default function Vendas() {
   const [vencimento, setVencimento] = useState('');
   const [itens, setItens] = useState([{ ...ITEM_VAZIO }]);
   const [erro, setErro] = useState('');
+  const [ultimaVenda, setUltimaVenda] = useState(null);
 
   async function carregar() {
     const [vendasRes, clientesRes, produtosRes] = await Promise.all([
@@ -38,7 +39,27 @@ export default function Vendas() {
     setVencimento('');
     setItens([{ ...ITEM_VAZIO }]);
     setErro('');
+    setUltimaVenda(null);
     setModalAberto(true);
+  }
+
+  async function selecionarCliente(id) {
+    setClienteId(id);
+    setUltimaVenda(null);
+    if (!id) return;
+    const { data } = await api.get(`/vendas/ultima-por-cliente/${id}`);
+    setUltimaVenda(data);
+  }
+
+  function usarItensDaUltimaVenda() {
+    if (!ultimaVenda) return;
+    setItens(
+      ultimaVenda.itens.map((i) => ({
+        produtoId: String(i.produtoId),
+        quantidade: Number(i.quantidade),
+        precoUnitario: Number(i.precoUnitario),
+      }))
+    );
   }
 
   function atualizarItem(index, campo, valor) {
@@ -140,9 +161,9 @@ export default function Vendas() {
           {erro && <div className="mb-3 text-sm text-red-600">{erro}</div>}
           <label className="block text-sm mb-1">Cliente</label>
           <select
-            className="w-full border rounded px-3 py-2 mb-4"
+            className="w-full border rounded px-3 py-2 mb-2"
             value={clienteId}
-            onChange={(e) => setClienteId(e.target.value)}
+            onChange={(e) => selecionarCliente(e.target.value)}
             required
           >
             <option value="">Selecione...</option>
@@ -152,6 +173,39 @@ export default function Vendas() {
               </option>
             ))}
           </select>
+
+          {clienteId && ultimaVenda === null && (
+            <div className="text-xs text-gray-400 mb-4">
+              Este cliente ainda não possui vendas anteriores.
+            </div>
+          )}
+
+          {ultimaVenda && (
+            <div className="bg-gray-50 border rounded p-3 mb-4 text-sm">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium">
+                  Última venda ({new Date(ultimaVenda.data).toLocaleDateString('pt-BR')})
+                </span>
+                <button
+                  type="button"
+                  onClick={usarItensDaUltimaVenda}
+                  className="text-blue-600 hover:underline text-xs"
+                >
+                  Usar estes itens
+                </button>
+              </div>
+              <ul className="space-y-1">
+                {ultimaVenda.itens.map((i) => (
+                  <li key={i.id} className="flex justify-between text-gray-600">
+                    <span>
+                      {i.produto.nome} ({Number(i.quantidade)} {i.produto.unidade})
+                    </span>
+                    <span>R$ {Number(i.precoUnitario).toFixed(2)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <label className="block text-sm mb-1">Data</label>
           <input

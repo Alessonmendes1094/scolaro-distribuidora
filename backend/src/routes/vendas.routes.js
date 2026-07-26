@@ -24,6 +24,17 @@ router.get('/', async (req, res) => {
   res.json(vendas);
 });
 
+router.get('/ultima-por-cliente/:clienteId', async (req, res) => {
+  const venda = await prisma.venda.findFirst({
+    where: { clienteId: Number(req.params.clienteId) },
+    include: { itens: { include: { produto: true } } },
+    orderBy: { data: 'desc' },
+  });
+
+  if (!venda) return res.json(null);
+  res.json(venda);
+});
+
 router.get('/:id', async (req, res) => {
   const venda = await prisma.venda.findUnique({
     where: { id: Number(req.params.id) },
