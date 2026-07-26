@@ -19,6 +19,7 @@ export default function Vendas() {
   const [itens, setItens] = useState([{ ...ITEM_VAZIO }]);
   const [erro, setErro] = useState('');
   const [ultimaVenda, setUltimaVenda] = useState(null);
+  const [editandoId, setEditandoId] = useState(null);
 
   async function carregar() {
     const [vendasRes, clientesRes, produtosRes, empresasRes] = await Promise.all([
@@ -38,6 +39,7 @@ export default function Vendas() {
   }, [empresaFiltro]);
 
   function abrirNovo() {
+    setEditandoId(null);
     setEmpresaId(empresas[0]?.id ? String(empresas[0].id) : '');
     setClienteId('');
     setData(new Date().toISOString().slice(0, 10));
@@ -47,6 +49,39 @@ export default function Vendas() {
     setErro('');
     setUltimaVenda(null);
     setModalAberto(true);
+  }
+
+  function abrirEdicao(venda) {
+    setEditandoId(venda.id);
+    setEmpresaId(String(venda.empresaId));
+    setClienteId(String(venda.clienteId));
+    setData(new Date(venda.data).toISOString().slice(0, 10));
+    setFormaPagamento(venda.formaPagamento);
+    const contaReceber = venda.contasReceber?.[0];
+    setVencimento(
+      contaReceber ? new Date(contaReceber.vencimento).toISOString().slice(0, 10) : ''
+    );
+    setItens(
+      venda.itens.map((i) => ({
+        produtoId: String(i.produtoId),
+        quantidade: Number(i.quantidade),
+        precoUnitario: Number(i.precoUnitario),
+        custoUnitario: i.custoUnitario !== null ? Number(i.custoUnitario) : null,
+      }))
+    );
+    setErro('');
+    setUltimaVenda(null);
+    setModalAberto(true);
+  }
+
+  async function excluir(id) {
+    if (!confirm('Deseja realmente excluir esta venda? O estoque será estornado.')) return;
+    try {
+      await api.delete(`/vendas/${id}`);
+      carregar();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erro ao excluir venda');
+    }
   }
 
   async function selecionarCliente(id) {
@@ -113,7 +148,7 @@ export default function Vendas() {
     e.preventDefault();
     setErro('');
     try {
-      const { data: vendaCriada } = await api.post('/vendas', {
+      const payload = {
         empresaId: Number(empresaId),
         clienteId: Number(clienteId),
         data,
@@ -124,10 +159,18 @@ export default function Vendas() {
           quantidade: Number(i.quantidade),
           precoUnitario: Number(i.precoUnitario),
         })),
-      });
-      setModalAberto(false);
-      carregar();
-      window.open(`/recibo/${vendaCriada.id}`, '_blank');
+      };
+
+      if (editandoId) {
+        await api.put(`/vendas/${editandoId}`, payload);
+        setModalAberto(false);
+        carregar();
+      } else {
+        const { data: vendaCriada } = await api.post('/vendas', payload);
+        setModalAberto(false);
+        carregar();
+        window.open(`/recibo/${vendaCriada.id}`, '_blank');
+      }
     } catch (err) {
       setErro(err.response?.data?.error || 'Erro ao salvar venda');
     }
@@ -172,7 +215,7 @@ export default function Vendas() {
             <th className="p-3">Itens</th>
             <th className="p-3">Total</th>
             <th className="p-3">Lucro</th>
-            <th className="p-3 w-24">Ações</th>
+            <th className="p-3 w-40">Ações</th>
           </tr>
         </thead>
         <tbody className="text-sm">
@@ -182,6 +225,7 @@ export default function Vendas() {
               0
             );
             const lucro = v.lucroTotal ?? 0;
+            const contaPaga = v.contasReceber?.some((cr) => cr.status === 'PAGO');
             return (
               <tr key={v.id} className="border-t">
                 <td className="p-3">#{v.id}</td>
@@ -196,13 +240,31 @@ export default function Vendas() {
                 <td className={`p-3 font-medium ${lucro < 0 ? 'text-red-600' : 'text-green-700'}`}>
                   R$ {lucro.toFixed(2)}
                 </td>
-                <td className="p-3">
+                <td className="p-3 space-x-2">
                   <button
                     onClick={() => window.open(`/recibo/${v.id}`, '_blank')}
                     className="text-blue-600 hover:underline"
                   >
                     Imprimir
                   </button>
+                  {contaPaga ? (
+                    <span className="text-gray-400 text-xs block">Já recebida</span>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => abrirEdicao(v)}
+                        className="text-blue-600 hover:underline"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => excluir(v.id)}
+                        className="text-red-600 hover:underline"
+                      >
+                        Excluir
+                      </button>
+                    </>
+                  )}
                 </td>
               </tr>
             );
@@ -217,7 +279,11 @@ export default function Vendas() {
         </tbody>
       </table>
 
-      <Modal open={modalAberto} title="Nova Venda" onClose={() => setModalAberto(false)}>
+      <Modal
+        open={modalAberto}
+        title={editandoId ? 'Editar Venda' : 'Nova Venda'}
+        onClose={() => setModalAberto(false)}
+      >
         <form onSubmit={salvar}>
           {erro && <div className="mb-3 text-sm text-red-600">{erro}</div>}
 
@@ -398,7 +464,7 @@ export default function Vendas() {
             type="submit"
             className="w-full bg-slate-900 text-white rounded px-3 py-2 hover:bg-slate-800"
           >
-            Salvar Venda
+            {editandoId ? 'Salvar Alterações' : 'Salvar Venda'}
           </button>
         </form>
       </Modal>

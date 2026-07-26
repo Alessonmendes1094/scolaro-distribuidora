@@ -92,6 +92,7 @@ router.post('/', async (req, res) => {
             descricao: `Compra #${novaCompra.id} - ${novaCompra.fornecedor.nome}`,
             valor: valorTotal,
             data: new Date(data),
+            compraId: novaCompra.id,
           },
         });
       }
@@ -100,6 +101,144 @@ router.post('/', async (req, res) => {
     });
 
     res.status(201).json(compra);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// body: igual ao POST — substitui fornecedor/data/comNota/formaPagamento/vencimento/itens
+router.put('/:id', async (req, res) => {
+  const compraId = Number(req.params.id);
+  const { fornecedorId, data, comNota, formaPagamento, vencimento, itens } = req.body;
+
+  if (!fornecedorId || !data || !Array.isArray(itens) || itens.length === 0) {
+    return res.status(400).json({ error: 'Fornecedor, data e itens são obrigatórios' });
+  }
+
+  const formasValidas = ['FIADO', 'BOLETO', 'A_VISTA'];
+  const forma = formaPagamento || 'BOLETO';
+  if (!formasValidas.includes(forma)) {
+    return res.status(400).json({ error: 'Forma de pagamento inválida' });
+  }
+
+  try {
+    const compraExistente = await prisma.compra.findUnique({
+      where: { id: compraId },
+      include: { itens: true, contasPagar: true },
+    });
+    if (!compraExistente) throw new Error('Compra não encontrada');
+    if (compraExistente.contasPagar.some((c) => c.status === 'PAGO')) {
+      throw new Error('Não é possível editar uma compra cuja conta a pagar já foi quitada');
+    }
+
+    const valorTotal = itens.reduce(
+      (acc, item) => acc + Number(item.quantidade) * Number(item.custoUnitario),
+      0
+    );
+
+    const compra = await prisma.$transaction(async (tx) => {
+      for (const itemAntigo of compraExistente.itens) {
+        await tx.produto.update({
+          where: { id: itemAntigo.produtoId },
+          data: { estoqueAtual: { decrement: itemAntigo.quantidade } },
+        });
+      }
+
+      await tx.itemCompra.deleteMany({ where: { compraId } });
+      await tx.contaPagar.deleteMany({ where: { compraId } });
+      await tx.movimentoCaixa.deleteMany({ where: { compraId } });
+
+      const dataVencimento =
+        forma !== 'A_VISTA'
+          ? vencimento
+            ? new Date(vencimento)
+            : new Date(new Date(data).getTime() + DIAS_VENCIMENTO_PADRAO * 24 * 60 * 60 * 1000)
+          : null;
+
+      const compraAtualizada = await tx.compra.update({
+        where: { id: compraId },
+        data: {
+          fornecedorId: Number(fornecedorId),
+          data: new Date(data),
+          comNota: Boolean(comNota),
+          formaPagamento: forma,
+          vencimento: dataVencimento,
+          itens: {
+            create: itens.map((item) => ({
+              produtoId: Number(item.produtoId),
+              quantidade: item.quantidade,
+              custoUnitario: item.custoUnitario,
+            })),
+          },
+        },
+        include: { itens: true, fornecedor: true },
+      });
+
+      for (const item of itens) {
+        await tx.produto.update({
+          where: { id: Number(item.produtoId) },
+          data: { estoqueAtual: { increment: item.quantidade } },
+        });
+      }
+
+      if (forma !== 'A_VISTA') {
+        await tx.contaPagar.create({
+          data: {
+            descricao: `Compra #${compraAtualizada.id} - ${compraAtualizada.fornecedor.nome}`,
+            categoria: 'MERCADORIA',
+            valor: valorTotal,
+            vencimento: dataVencimento,
+            compraId: compraAtualizada.id,
+          },
+        });
+      } else {
+        await tx.movimentoCaixa.create({
+          data: {
+            tipo: 'SAIDA',
+            descricao: `Compra #${compraAtualizada.id} - ${compraAtualizada.fornecedor.nome}`,
+            valor: valorTotal,
+            data: new Date(data),
+            compraId: compraAtualizada.id,
+          },
+        });
+      }
+
+      return compraAtualizada;
+    });
+
+    res.json(compra);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  const compraId = Number(req.params.id);
+
+  try {
+    const compraExistente = await prisma.compra.findUnique({
+      where: { id: compraId },
+      include: { itens: true, contasPagar: true },
+    });
+    if (!compraExistente) throw new Error('Compra não encontrada');
+    if (compraExistente.contasPagar.some((c) => c.status === 'PAGO')) {
+      throw new Error('Não é possível excluir uma compra cuja conta a pagar já foi quitada');
+    }
+
+    await prisma.$transaction(async (tx) => {
+      for (const item of compraExistente.itens) {
+        await tx.produto.update({
+          where: { id: item.produtoId },
+          data: { estoqueAtual: { decrement: item.quantidade } },
+        });
+      }
+
+      await tx.movimentoCaixa.deleteMany({ where: { compraId } });
+      await tx.contaPagar.deleteMany({ where: { compraId } });
+      await tx.compra.delete({ where: { id: compraId } });
+    });
+
+    res.status(204).send();
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

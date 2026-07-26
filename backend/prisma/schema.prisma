@@ -95,6 +95,7 @@ model Compra {
   vencimento     DateTime?
   itens          ItemCompra[]
   contasPagar    ContaPagar[]
+  movimentos     MovimentoCaixa[]
   createdAt      DateTime       @default(now())
 }
 
@@ -174,6 +175,9 @@ model MovimentoCaixa {
 
   contaPagar     ContaPagar?   @relation(fields: [contaPagarId], references: [id])
   contaPagarId   Int?
+
+  compra         Compra?       @relation(fields: [compraId], references: [id])
+  compraId       Int?
 
   createdAt      DateTime      @default(now())
 }

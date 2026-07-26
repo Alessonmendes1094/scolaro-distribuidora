@@ -16,6 +16,7 @@ export default function Compras() {
   const [vencimento, setVencimento] = useState('');
   const [itens, setItens] = useState([{ ...ITEM_VAZIO }]);
   const [erro, setErro] = useState('');
+  const [editandoId, setEditandoId] = useState(null);
 
   async function carregar() {
     const [comprasRes, fornecedoresRes, produtosRes] = await Promise.all([
@@ -33,6 +34,7 @@ export default function Compras() {
   }, []);
 
   function abrirNovo() {
+    setEditandoId(null);
     setFornecedorId('');
     setData(new Date().toISOString().slice(0, 10));
     setComNota(false);
@@ -41,6 +43,34 @@ export default function Compras() {
     setItens([{ ...ITEM_VAZIO }]);
     setErro('');
     setModalAberto(true);
+  }
+
+  function abrirEdicao(compra) {
+    setEditandoId(compra.id);
+    setFornecedorId(String(compra.fornecedorId));
+    setData(new Date(compra.data).toISOString().slice(0, 10));
+    setComNota(compra.comNota);
+    setFormaPagamento(compra.formaPagamento);
+    setVencimento(compra.vencimento ? new Date(compra.vencimento).toISOString().slice(0, 10) : '');
+    setItens(
+      compra.itens.map((i) => ({
+        produtoId: String(i.produtoId),
+        quantidade: Number(i.quantidade),
+        custoUnitario: Number(i.custoUnitario),
+      }))
+    );
+    setErro('');
+    setModalAberto(true);
+  }
+
+  async function excluir(id) {
+    if (!confirm('Deseja realmente excluir esta compra? O estoque será estornado.')) return;
+    try {
+      await api.delete(`/compras/${id}`);
+      carregar();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erro ao excluir compra');
+    }
   }
 
   function atualizarItem(index, campo, valor) {
@@ -61,7 +91,7 @@ export default function Compras() {
     e.preventDefault();
     setErro('');
     try {
-      await api.post('/compras', {
+      const payload = {
         fornecedorId: Number(fornecedorId),
         data,
         comNota,
@@ -72,7 +102,12 @@ export default function Compras() {
           quantidade: Number(i.quantidade),
           custoUnitario: Number(i.custoUnitario),
         })),
-      });
+      };
+      if (editandoId) {
+        await api.put(`/compras/${editandoId}`, payload);
+      } else {
+        await api.post('/compras', payload);
+      }
       setModalAberto(false);
       carregar();
     } catch (err) {
@@ -101,6 +136,7 @@ export default function Compras() {
             <th className="p-3">Pagamento</th>
             <th className="p-3">Itens</th>
             <th className="p-3">Total</th>
+            <th className="p-3 w-32">Ações</th>
           </tr>
         </thead>
         <tbody className="text-sm">
@@ -109,6 +145,7 @@ export default function Compras() {
               (acc, i) => acc + Number(i.quantidade) * Number(i.custoUnitario),
               0
             );
+            const contaPaga = c.contasPagar?.some((cp) => cp.status === 'PAGO');
             return (
               <tr key={c.id} className="border-t">
                 <td className="p-3">{new Date(c.data).toLocaleDateString('pt-BR')}</td>
@@ -126,12 +163,32 @@ export default function Compras() {
                   {c.itens.map((i) => `${i.produto.nome} (${Number(i.quantidade)})`).join(', ')}
                 </td>
                 <td className="p-3">R$ {total.toFixed(2)}</td>
+                <td className="p-3 space-x-2">
+                  {contaPaga ? (
+                    <span className="text-gray-400 text-xs">Conta já paga</span>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => abrirEdicao(c)}
+                        className="text-blue-600 hover:underline"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => excluir(c.id)}
+                        className="text-red-600 hover:underline"
+                      >
+                        Excluir
+                      </button>
+                    </>
+                  )}
+                </td>
               </tr>
             );
           })}
           {lista.length === 0 && (
             <tr>
-              <td colSpan={6} className="p-3 text-center text-gray-400">
+              <td colSpan={7} className="p-3 text-center text-gray-400">
                 Nenhuma compra registrada
               </td>
             </tr>
@@ -139,7 +196,11 @@ export default function Compras() {
         </tbody>
       </table>
 
-      <Modal open={modalAberto} title="Nova Compra" onClose={() => setModalAberto(false)}>
+      <Modal
+        open={modalAberto}
+        title={editandoId ? 'Editar Compra' : 'Nova Compra'}
+        onClose={() => setModalAberto(false)}
+      >
         <form onSubmit={salvar}>
           {erro && <div className="mb-3 text-sm text-red-600">{erro}</div>}
           <label className="block text-sm mb-1">Fornecedor</label>
@@ -249,7 +310,7 @@ export default function Compras() {
             type="submit"
             className="w-full bg-slate-900 text-white rounded px-3 py-2 hover:bg-slate-800"
           >
-            Salvar Compra
+            {editandoId ? 'Salvar Alterações' : 'Salvar Compra'}
           </button>
         </form>
       </Modal>
