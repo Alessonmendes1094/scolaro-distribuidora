@@ -30,6 +30,11 @@ function statusPendenciaVenda(venda) {
 
 // Vendas por cliente no período
 router.get('/vendas-por-cliente', async (req, res) => {
+  await prisma.contaReceber.updateMany({
+    where: { status: 'PENDENTE', vencimento: { lt: new Date() } },
+    data: { status: 'ATRASADO' },
+  });
+
   const vendas = await prisma.venda.findMany({
     where: { ...periodoWhere(req.query), ...empresaWhere(req.query), ...clienteWhere(req.query) },
     include: { cliente: true, itens: true, contasReceber: true },
