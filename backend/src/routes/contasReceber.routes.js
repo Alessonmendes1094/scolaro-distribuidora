@@ -30,8 +30,11 @@ router.get('/', async (req, res) => {
   res.json(contas);
 });
 
+// body: { dataPagamento? } — data em que o recebimento foi efetivamente feito (padrão: agora)
 router.post('/:id/pagar', async (req, res) => {
   const id = Number(req.params.id);
+  const { dataPagamento } = req.body;
+  const dataEfetiva = dataPagamento ? new Date(dataPagamento) : new Date();
 
   try {
     const conta = await prisma.$transaction(async (tx) => {
@@ -44,7 +47,7 @@ router.post('/:id/pagar', async (req, res) => {
 
       const contaAtualizada = await tx.contaReceber.update({
         where: { id },
-        data: { status: 'PAGO', pagoEm: new Date() },
+        data: { status: 'PAGO', pagoEm: dataEfetiva },
       });
 
       await tx.movimentoCaixa.create({
@@ -54,10 +57,52 @@ router.post('/:id/pagar', async (req, res) => {
           valor: contaAtualizada.valor,
           contaReceberId: contaAtualizada.id,
           vendaId: contaAtual.vendaId,
+          data: dataEfetiva,
         },
       });
 
       return contaAtualizada;
+    });
+
+    res.json(conta);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post('/:id/cancelar-baixa', async (req, res) => {
+  const id = Number(req.params.id);
+
+  try {
+    const conta = await prisma.$transaction(async (tx) => {
+      const contaAtual = await tx.contaReceber.findUnique({ where: { id } });
+      if (!contaAtual) throw new Error('Conta a receber não encontrada');
+      if (contaAtual.status !== 'PAGO') throw new Error('Esta conta não está recebida');
+
+      await tx.movimentoCaixa.deleteMany({ where: { contaReceberId: id } });
+
+      const siblingPendente = await tx.contaReceber.findFirst({
+        where: {
+          vendaId: contaAtual.vendaId,
+          vencimento: contaAtual.vencimento,
+          status: { in: ['PENDENTE', 'ATRASADO'] },
+          id: { not: id },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      let valorRestaurado = Number(contaAtual.valor);
+      if (siblingPendente) {
+        valorRestaurado += Number(siblingPendente.valor);
+        await tx.contaReceber.delete({ where: { id: siblingPendente.id } });
+      }
+
+      const novoStatus = contaAtual.vencimento < new Date() ? 'ATRASADO' : 'PENDENTE';
+
+      return tx.contaReceber.update({
+        where: { id },
+        data: { valor: valorRestaurado, status: novoStatus, pagoEm: null },
+      });
     });
 
     res.json(conta);
@@ -72,7 +117,7 @@ router.post('/:id/pagar', async (req, res) => {
 // possível (na ordem de vencimento) e divide a última conta atingida
 // em uma parte paga e uma parte que permanece pendente.
 router.post('/baixar', async (req, res) => {
-  const { contaIds, valorBaixado } = req.body;
+  const { contaIds, valorBaixado, dataPagamento } = req.body;
 
   if (!Array.isArray(contaIds) || contaIds.length === 0) {
     return res.status(400).json({ error: 'Selecione ao menos uma pendência' });
@@ -81,6 +126,7 @@ router.post('/baixar', async (req, res) => {
   if (!valor || valor <= 0) {
     return res.status(400).json({ error: 'Informe um valor de baixa maior que zero' });
   }
+  const dataEfetiva = dataPagamento ? new Date(dataPagamento) : new Date();
 
   try {
     const resultado = await prisma.$transaction(async (tx) => {
@@ -113,7 +159,7 @@ router.post('/baixar', async (req, res) => {
         if (restante >= valorConta) {
           const contaPaga = await tx.contaReceber.update({
             where: { id: conta.id },
-            data: { status: 'PAGO', pagoEm: new Date() },
+            data: { status: 'PAGO', pagoEm: dataEfetiva },
           });
           await tx.movimentoCaixa.create({
             data: {
@@ -122,6 +168,7 @@ router.post('/baixar', async (req, res) => {
               valor: valorConta,
               contaReceberId: contaPaga.id,
               vendaId: conta.vendaId,
+              data: dataEfetiva,
             },
           });
           contasQuitadas.push(contaPaga);
@@ -132,7 +179,7 @@ router.post('/baixar', async (req, res) => {
 
           const contaPaga = await tx.contaReceber.update({
             where: { id: conta.id },
-            data: { valor: valorPago, status: 'PAGO', pagoEm: new Date() },
+            data: { valor: valorPago, status: 'PAGO', pagoEm: dataEfetiva },
           });
           await tx.movimentoCaixa.create({
             data: {
@@ -141,6 +188,7 @@ router.post('/baixar', async (req, res) => {
               valor: valorPago,
               contaReceberId: contaPaga.id,
               vendaId: conta.vendaId,
+              data: dataEfetiva,
             },
           });
 

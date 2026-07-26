@@ -15,6 +15,7 @@ export default function ContasReceber() {
   const [dataFim, setDataFim] = useState('');
   const [selecionadas, setSelecionadas] = useState([]);
   const [valorBaixa, setValorBaixa] = useState('');
+  const [dataRecebimento, setDataRecebimento] = useState(() => new Date().toISOString().slice(0, 10));
   const [erro, setErro] = useState('');
 
   async function carregar() {
@@ -68,10 +69,21 @@ export default function ContasReceber() {
       await api.post('/contas-receber/baixar', {
         contaIds: selecionadas,
         valorBaixado: valor,
+        dataPagamento: dataRecebimento,
       });
       carregar();
     } catch (err) {
       setErro(err.response?.data?.error || 'Erro ao baixar pendências');
+    }
+  }
+
+  async function cancelarBaixa(id) {
+    if (!confirm('Cancelar a baixa desta conta? Ela voltará a ficar pendente.')) return;
+    try {
+      await api.post(`/contas-receber/${id}/cancelar-baixa`);
+      carregar();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erro ao cancelar baixa');
     }
   }
 
@@ -138,6 +150,15 @@ export default function ContasReceber() {
               onChange={(e) => setValorBaixa(e.target.value)}
             />
           </div>
+          <div>
+            <label className="block text-sm mb-1">Data do Recebimento</label>
+            <input
+              type="date"
+              className="border rounded px-3 py-2 text-sm"
+              value={dataRecebimento}
+              onChange={(e) => setDataRecebimento(e.target.value)}
+            />
+          </div>
           <button
             onClick={baixarSelecionadas}
             className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800"
@@ -180,7 +201,7 @@ export default function ContasReceber() {
                 <span className={`px-2 py-1 rounded text-xs ${badge[c.status]}`}>{c.status}</span>
               </td>
               <td className="p-3">
-                {c.status !== 'PAGO' && (
+                {c.status !== 'PAGO' ? (
                   <button
                     onClick={() => {
                       setSelecionadas([c.id]);
@@ -189,6 +210,13 @@ export default function ContasReceber() {
                     className="text-green-700 hover:underline"
                   >
                     Marcar recebido
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => cancelarBaixa(c.id)}
+                    className="text-red-600 hover:underline"
+                  >
+                    Cancelar baixa
                   </button>
                 )}
               </td>

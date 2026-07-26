@@ -9,6 +9,11 @@ export default function Produtos() {
   const [modalAberto, setModalAberto] = useState(false);
   const [form, setForm] = useState(FORM_INICIAL);
   const [editandoId, setEditandoId] = useState(null);
+  const [modalAjusteAberto, setModalAjusteAberto] = useState(false);
+  const [produtoAjuste, setProdutoAjuste] = useState(null);
+  const [novaQuantidade, setNovaQuantidade] = useState('');
+  const [motivoAjuste, setMotivoAjuste] = useState('');
+  const [erroAjuste, setErroAjuste] = useState('');
 
   async function carregar() {
     const { data } = await api.get('/produtos');
@@ -58,6 +63,29 @@ export default function Produtos() {
     carregar();
   }
 
+  function abrirAjusteEstoque(produto) {
+    setProdutoAjuste(produto);
+    setNovaQuantidade(Number(produto.estoqueAtual));
+    setMotivoAjuste('');
+    setErroAjuste('');
+    setModalAjusteAberto(true);
+  }
+
+  async function salvarAjusteEstoque(e) {
+    e.preventDefault();
+    setErroAjuste('');
+    try {
+      await api.post(`/produtos/${produtoAjuste.id}/ajuste-estoque`, {
+        quantidade: Number(novaQuantidade),
+        motivo: motivoAjuste || undefined,
+      });
+      setModalAjusteAberto(false);
+      carregar();
+    } catch (err) {
+      setErroAjuste(err.response?.data?.error || 'Erro ao ajustar estoque');
+    }
+  }
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -77,7 +105,7 @@ export default function Produtos() {
             <th className="p-3">Unidade</th>
             <th className="p-3">Estoque</th>
             <th className="p-3">Preço de Venda</th>
-            <th className="p-3 w-32">Ações</th>
+            <th className="p-3 w-64">Ações</th>
           </tr>
         </thead>
         <tbody className="text-sm">
@@ -90,6 +118,12 @@ export default function Produtos() {
               <td className="p-3 space-x-2">
                 <button onClick={() => abrirEdicao(p)} className="text-blue-600 hover:underline">
                   Editar
+                </button>
+                <button
+                  onClick={() => abrirAjusteEstoque(p)}
+                  className="text-amber-600 hover:underline"
+                >
+                  Ajustar Estoque
                 </button>
                 <button onClick={() => excluir(p.id)} className="text-red-600 hover:underline">
                   Excluir
@@ -150,6 +184,47 @@ export default function Produtos() {
             className="w-full bg-slate-900 text-white rounded px-3 py-2 hover:bg-slate-800"
           >
             Salvar
+          </button>
+        </form>
+      </Modal>
+
+      <Modal
+        open={modalAjusteAberto}
+        title={`Ajustar Estoque${produtoAjuste ? ` — ${produtoAjuste.nome}` : ''}`}
+        onClose={() => setModalAjusteAberto(false)}
+      >
+        <form onSubmit={salvarAjusteEstoque}>
+          {erroAjuste && <div className="mb-3 text-sm text-red-600">{erroAjuste}</div>}
+          {produtoAjuste && (
+            <div className="text-sm text-gray-500 mb-4">
+              Estoque atual: <strong>{Number(produtoAjuste.estoqueAtual)}</strong>{' '}
+              {produtoAjuste.unidade}
+              <br />
+              Informe a nova quantidade — o estoque passará a contar a partir
+              deste valor.
+            </div>
+          )}
+          <label className="block text-sm mb-1">Nova quantidade em estoque</label>
+          <input
+            type="number"
+            step="0.001"
+            className="w-full border rounded px-3 py-2 mb-4"
+            value={novaQuantidade}
+            onChange={(e) => setNovaQuantidade(e.target.value)}
+            required
+          />
+          <label className="block text-sm mb-1">Motivo (opcional)</label>
+          <input
+            className="w-full border rounded px-3 py-2 mb-6"
+            value={motivoAjuste}
+            onChange={(e) => setMotivoAjuste(e.target.value)}
+            placeholder="Ex: contagem física, perda, avaria"
+          />
+          <button
+            type="submit"
+            className="w-full bg-slate-900 text-white rounded px-3 py-2 hover:bg-slate-800"
+          >
+            Confirmar Ajuste
           </button>
         </form>
       </Modal>

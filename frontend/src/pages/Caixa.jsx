@@ -1,10 +1,16 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
+import Modal from '../components/Modal.jsx';
 
 export default function Caixa() {
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [resumo, setResumo] = useState({ movimentos: [], totalEntradas: 0, totalSaidas: 0, saldo: 0 });
+  const [modalAberto, setModalAberto] = useState(false);
+  const [saldoGeral, setSaldoGeral] = useState(0);
+  const [valorAtual, setValorAtual] = useState('');
+  const [descricaoAjuste, setDescricaoAjuste] = useState('');
+  const [erro, setErro] = useState('');
 
   async function carregar() {
     const params = {};
@@ -18,9 +24,41 @@ export default function Caixa() {
     carregar();
   }, []);
 
+  async function abrirAjuste() {
+    const { data } = await api.get('/caixa');
+    setSaldoGeral(data.saldo);
+    setValorAtual(data.saldo.toFixed(2));
+    setDescricaoAjuste('');
+    setErro('');
+    setModalAberto(true);
+  }
+
+  async function salvarAjuste(e) {
+    e.preventDefault();
+    setErro('');
+    try {
+      await api.post('/caixa/ajuste', {
+        valorAtual: Number(valorAtual),
+        descricao: descricaoAjuste || undefined,
+      });
+      setModalAberto(false);
+      carregar();
+    } catch (err) {
+      setErro(err.response?.data?.error || 'Erro ao ajustar caixa');
+    }
+  }
+
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Caixa</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Caixa</h1>
+        <button
+          onClick={abrirAjuste}
+          className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800"
+        >
+          Ajustar Caixa
+        </button>
+      </div>
 
       <div className="flex gap-3 items-end mb-4">
         <div>
@@ -103,6 +141,41 @@ export default function Caixa() {
           )}
         </tbody>
       </table>
+
+      <Modal open={modalAberto} title="Ajustar Caixa" onClose={() => setModalAberto(false)}>
+        <form onSubmit={salvarAjuste}>
+          {erro && <div className="mb-3 text-sm text-red-600">{erro}</div>}
+          <div className="text-sm text-gray-500 mb-4">
+            Saldo atual calculado: <strong>R$ {saldoGeral.toFixed(2)}</strong>
+            <br />
+            Informe abaixo o valor real do caixa — o sistema lançará um ajuste
+            (entrada ou saída) para que o saldo passe a refletir esse valor a
+            partir de agora.
+          </div>
+          <label className="block text-sm mb-1">Valor atual do caixa</label>
+          <input
+            type="number"
+            step="0.01"
+            className="w-full border rounded px-3 py-2 mb-4"
+            value={valorAtual}
+            onChange={(e) => setValorAtual(e.target.value)}
+            required
+          />
+          <label className="block text-sm mb-1">Motivo (opcional)</label>
+          <input
+            className="w-full border rounded px-3 py-2 mb-6"
+            value={descricaoAjuste}
+            onChange={(e) => setDescricaoAjuste(e.target.value)}
+            placeholder="Ex: conferência de caixa físico"
+          />
+          <button
+            type="submit"
+            className="w-full bg-slate-900 text-white rounded px-3 py-2 hover:bg-slate-800"
+          >
+            Confirmar Ajuste
+          </button>
+        </form>
+      </Modal>
     </div>
   );
 }

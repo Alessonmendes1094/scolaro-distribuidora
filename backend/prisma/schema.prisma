@@ -72,6 +72,17 @@ model Produto {
   createdAt     DateTime      @default(now())
   itensCompra   ItemCompra[]
   itensVenda    ItemVenda[]
+  ajustes       AjusteEstoque[]
+}
+
+model AjusteEstoque {
+  id                 Int      @id @default(autoincrement())
+  produto            Produto  @relation(fields: [produtoId], references: [id])
+  produtoId          Int
+  quantidadeAnterior Decimal  @db.Decimal(12, 3)
+  quantidadeNova     Decimal  @db.Decimal(12, 3)
+  motivo             String?
+  createdAt          DateTime @default(now())
 }
 
 model Cliente {

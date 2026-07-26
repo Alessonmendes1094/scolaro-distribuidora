@@ -48,8 +48,11 @@ router.put('/:id', async (req, res) => {
   res.json(conta);
 });
 
+// body: { dataPagamento? } — data em que o pagamento foi efetivamente feito (padrão: agora)
 router.post('/:id/pagar', async (req, res) => {
   const id = Number(req.params.id);
+  const { dataPagamento } = req.body;
+  const dataEfetiva = dataPagamento ? new Date(dataPagamento) : new Date();
 
   try {
     const conta = await prisma.$transaction(async (tx) => {
@@ -59,7 +62,7 @@ router.post('/:id/pagar', async (req, res) => {
 
       const contaAtualizada = await tx.contaPagar.update({
         where: { id },
-        data: { status: 'PAGO', pagoEm: new Date() },
+        data: { status: 'PAGO', pagoEm: dataEfetiva },
       });
 
       await tx.movimentoCaixa.create({
@@ -68,10 +71,36 @@ router.post('/:id/pagar', async (req, res) => {
           descricao: `Pagamento: ${contaAtualizada.descricao}`,
           valor: contaAtualizada.valor,
           contaPagarId: contaAtualizada.id,
+          data: dataEfetiva,
         },
       });
 
       return contaAtualizada;
+    });
+
+    res.json(conta);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post('/:id/cancelar-baixa', async (req, res) => {
+  const id = Number(req.params.id);
+
+  try {
+    const conta = await prisma.$transaction(async (tx) => {
+      const contaAtual = await tx.contaPagar.findUnique({ where: { id } });
+      if (!contaAtual) throw new Error('Conta a pagar não encontrada');
+      if (contaAtual.status !== 'PAGO') throw new Error('Esta conta não está paga');
+
+      await tx.movimentoCaixa.deleteMany({ where: { contaPagarId: id } });
+
+      const novoStatus = contaAtual.vencimento < new Date() ? 'ATRASADO' : 'PENDENTE';
+
+      return tx.contaPagar.update({
+        where: { id },
+        data: { status: novoStatus, pagoEm: null },
+      });
     });
 
     res.json(conta);

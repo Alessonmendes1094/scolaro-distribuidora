@@ -14,6 +14,9 @@ export default function ContasPagar() {
   const [lista, setLista] = useState([]);
   const [modalAberto, setModalAberto] = useState(false);
   const [form, setForm] = useState(FORM_INICIAL);
+  const [modalPagarAberto, setModalPagarAberto] = useState(false);
+  const [contaPagando, setContaPagando] = useState(null);
+  const [dataPagamento, setDataPagamento] = useState('');
 
   async function carregar() {
     const { data } = await api.get('/contas-pagar');
@@ -36,10 +39,27 @@ export default function ContasPagar() {
     carregar();
   }
 
-  async function marcarPago(id) {
-    if (!confirm('Confirmar pagamento desta conta?')) return;
-    await api.post(`/contas-pagar/${id}/pagar`);
+  function abrirPagar(conta) {
+    setContaPagando(conta);
+    setDataPagamento(new Date().toISOString().slice(0, 10));
+    setModalPagarAberto(true);
+  }
+
+  async function confirmarPagar(e) {
+    e.preventDefault();
+    await api.post(`/contas-pagar/${contaPagando.id}/pagar`, { dataPagamento });
+    setModalPagarAberto(false);
     carregar();
+  }
+
+  async function cancelarBaixa(id) {
+    if (!confirm('Cancelar a baixa desta conta? Ela voltará a ficar pendente.')) return;
+    try {
+      await api.post(`/contas-pagar/${id}/cancelar-baixa`);
+      carregar();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erro ao cancelar baixa');
+    }
   }
 
   return (
@@ -76,12 +96,19 @@ export default function ContasPagar() {
                 <span className={`px-2 py-1 rounded text-xs ${badge[c.status]}`}>{c.status}</span>
               </td>
               <td className="p-3">
-                {c.status !== 'PAGO' && (
+                {c.status !== 'PAGO' ? (
                   <button
-                    onClick={() => marcarPago(c.id)}
+                    onClick={() => abrirPagar(c)}
                     className="text-green-700 hover:underline"
                   >
                     Marcar pago
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => cancelarBaixa(c.id)}
+                    className="text-red-600 hover:underline"
+                  >
+                    Cancelar baixa
                   </button>
                 )}
               </td>
@@ -140,6 +167,34 @@ export default function ContasPagar() {
             className="w-full bg-slate-900 text-white rounded px-3 py-2 hover:bg-slate-800"
           >
             Salvar
+          </button>
+        </form>
+      </Modal>
+
+      <Modal
+        open={modalPagarAberto}
+        title="Confirmar Pagamento"
+        onClose={() => setModalPagarAberto(false)}
+      >
+        <form onSubmit={confirmarPagar}>
+          {contaPagando && (
+            <div className="text-sm text-gray-500 mb-4">
+              {contaPagando.descricao} — R$ {Number(contaPagando.valor).toFixed(2)}
+            </div>
+          )}
+          <label className="block text-sm mb-1">Data do Pagamento</label>
+          <input
+            type="date"
+            className="w-full border rounded px-3 py-2 mb-6"
+            value={dataPagamento}
+            onChange={(e) => setDataPagamento(e.target.value)}
+            required
+          />
+          <button
+            type="submit"
+            className="w-full bg-slate-900 text-white rounded px-3 py-2 hover:bg-slate-800"
+          >
+            Confirmar Pagamento
           </button>
         </form>
       </Modal>
