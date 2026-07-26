@@ -24,6 +24,7 @@ export default function Relatorios() {
   const [empresas, setEmpresas] = useState([]);
   const [clienteId, setClienteId] = useState('');
   const [clientes, setClientes] = useState([]);
+  const [status, setStatus] = useState('');
   const [resultado, setResultado] = useState([]);
 
   useEffect(() => {
@@ -31,12 +32,31 @@ export default function Relatorios() {
     api.get('/clientes').then((res) => setClientes(res.data));
   }, []);
 
+  useEffect(() => {
+    setStatus('');
+  }, [aba]);
+
+  const opcoesStatus =
+    aba === 'vendas-por-cliente'
+      ? [
+          { value: 'PAGO', label: 'Pago' },
+          { value: 'PENDENTE', label: 'Em Aberto' },
+          { value: 'ATRASADO', label: 'Vencida' },
+        ]
+      : aba === 'pagamentos-pendentes'
+      ? [
+          { value: 'PENDENTE', label: 'Em Aberto' },
+          { value: 'ATRASADO', label: 'Vencida' },
+        ]
+      : [];
+
   function montarParams() {
     const params = {};
     if (dataInicio) params.dataInicio = dataInicio;
     if (dataFim) params.dataFim = dataFim;
     if (empresaId) params.empresaId = empresaId;
     if (clienteId) params.clienteId = clienteId;
+    if (status) params.status = status;
     return params;
   }
 
@@ -100,6 +120,7 @@ export default function Relatorios() {
     const clienteNome = clientes.find((c) => String(c.id) === String(clienteId))?.nome;
     const subtitulos = [];
     if (clienteNome) subtitulos.push(`Cliente: ${clienteNome}`);
+    if (status) subtitulos.push(`Status: ${STATUS_LABEL[status] || status}`);
     if (dataInicio || dataFim) {
       subtitulos.push(
         `Período: ${dataInicio ? new Date(dataInicio).toLocaleDateString('pt-BR') : '...'} até ${
@@ -237,6 +258,23 @@ export default function Relatorios() {
             ))}
           </select>
         </div>
+        {opcoesStatus.length > 0 && (
+          <div>
+            <label className="block text-sm mb-1">Status</label>
+            <select
+              className="border rounded px-3 py-2"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <option value="">Todos os status</option>
+              {opcoesStatus.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <button
           onClick={gerar}
           className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800"

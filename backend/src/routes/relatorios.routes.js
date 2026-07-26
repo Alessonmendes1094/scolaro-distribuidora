@@ -41,8 +41,13 @@ router.get('/vendas-por-cliente', async (req, res) => {
     orderBy: { data: 'desc' },
   });
 
+  const { status: statusFiltro } = req.query;
+
   const porCliente = {};
   for (const venda of vendas) {
+    const statusPendencia = statusPendenciaVenda(venda);
+    if (statusFiltro && statusPendencia !== statusFiltro) continue;
+
     const totalVenda = venda.itens.reduce(
       (s, i) => s + Number(i.quantidade) * Number(i.precoUnitario),
       0
@@ -64,7 +69,7 @@ router.get('/vendas-por-cliente', async (req, res) => {
       formaPagamento: venda.formaPagamento,
       quantidade: qtdItens,
       valorTotal: totalVenda,
-      statusPendencia: statusPendenciaVenda(venda),
+      statusPendencia,
     });
     porCliente[venda.clienteId].quantidadeTotal += qtdItens;
     porCliente[venda.clienteId].valorTotal += totalVenda;
@@ -126,9 +131,13 @@ router.get('/pagamentos-pendentes', async (req, res) => {
     data: { status: 'ATRASADO' },
   });
 
+  const statusValidos = ['PENDENTE', 'ATRASADO'];
+  const statusFiltro =
+    req.query.status && statusValidos.includes(req.query.status) ? req.query.status : null;
+
   const contas = await prisma.contaReceber.findMany({
     where: {
-      status: { in: ['PENDENTE', 'ATRASADO'] },
+      status: statusFiltro || { in: statusValidos },
       ...periodoWhere(req.query, 'vencimento'),
       venda: {
         ...(req.query.empresaId ? { empresaId: Number(req.query.empresaId) } : {}),

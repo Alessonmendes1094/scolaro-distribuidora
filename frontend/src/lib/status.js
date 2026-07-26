@@ -1,5 +1,5 @@
 export const STATUS_LABEL = {
   PENDENTE: 'Em Aberto',
-  ATRASADO: 'Atrasado',
+  ATRASADO: 'Vencida',
   PAGO: 'Pago',
 };

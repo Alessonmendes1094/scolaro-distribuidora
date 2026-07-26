@@ -26,8 +26,10 @@ export default function RelatorioImpressao() {
         const params = {};
         const clienteId = searchParams.get('clienteId');
         const empresaId = searchParams.get('empresaId');
+        const status = searchParams.get('status');
         if (clienteId) params.clienteId = clienteId;
         if (empresaId) params.empresaId = empresaId;
+        if (status) params.status = status;
         if (dataInicio) params.dataInicio = dataInicio;
         if (dataFim) params.dataFim = dataFim;
         const { data } = await api.get(`/relatorios/${tipo}`, { params });
@@ -47,6 +49,10 @@ export default function RelatorioImpressao() {
   function exportarPdf() {
     const subtitulos = [];
     if (clienteNomeFiltro) subtitulos.push(`Cliente: ${clienteNomeFiltro}`);
+    if (searchParams.get('status')) {
+      const statusValor = searchParams.get('status');
+      subtitulos.push(`Status: ${STATUS_LABEL[statusValor] || statusValor}`);
+    }
     if (dataInicio || dataFim) {
       subtitulos.push(
         `Período: ${dataInicio ? new Date(dataInicio).toLocaleDateString('pt-BR') : '...'} até ${
@@ -136,6 +142,11 @@ export default function RelatorioImpressao() {
         <div>
           <h1 className="text-xl font-bold">{TITULOS[tipo] || 'Relatório'}</h1>
           {clienteNomeFiltro && <p className="text-gray-600">Cliente: {clienteNomeFiltro}</p>}
+          {searchParams.get('status') && (
+            <p className="text-gray-600">
+              Status: {STATUS_LABEL[searchParams.get('status')] || searchParams.get('status')}
+            </p>
+          )}
           {(dataInicio || dataFim) && (
             <p className="text-gray-600">
               Período: {dataInicio ? new Date(dataInicio).toLocaleDateString('pt-BR') : '...'} até{' '}
