@@ -12,6 +12,8 @@ export default function Compras() {
   const [fornecedorId, setFornecedorId] = useState('');
   const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
   const [comNota, setComNota] = useState(false);
+  const [formaPagamento, setFormaPagamento] = useState('BOLETO');
+  const [vencimento, setVencimento] = useState('');
   const [itens, setItens] = useState([{ ...ITEM_VAZIO }]);
   const [erro, setErro] = useState('');
 
@@ -34,6 +36,8 @@ export default function Compras() {
     setFornecedorId('');
     setData(new Date().toISOString().slice(0, 10));
     setComNota(false);
+    setFormaPagamento('BOLETO');
+    setVencimento('');
     setItens([{ ...ITEM_VAZIO }]);
     setErro('');
     setModalAberto(true);
@@ -61,6 +65,8 @@ export default function Compras() {
         fornecedorId: Number(fornecedorId),
         data,
         comNota,
+        formaPagamento,
+        vencimento: formaPagamento !== 'A_VISTA' ? vencimento || undefined : undefined,
         itens: itens.map((i) => ({
           produtoId: Number(i.produtoId),
           quantidade: Number(i.quantidade),
@@ -92,6 +98,7 @@ export default function Compras() {
             <th className="p-3">Data</th>
             <th className="p-3">Fornecedor</th>
             <th className="p-3">Nota Fiscal</th>
+            <th className="p-3">Pagamento</th>
             <th className="p-3">Itens</th>
             <th className="p-3">Total</th>
           </tr>
@@ -108,6 +115,14 @@ export default function Compras() {
                 <td className="p-3">{c.fornecedor?.nome}</td>
                 <td className="p-3">{c.comNota ? 'Sim' : 'Não'}</td>
                 <td className="p-3">
+                  {c.formaPagamento}
+                  {c.formaPagamento !== 'A_VISTA' && c.vencimento && (
+                    <div className="text-xs text-gray-500">
+                      Venc.: {new Date(c.vencimento).toLocaleDateString('pt-BR')}
+                    </div>
+                  )}
+                </td>
+                <td className="p-3">
                   {c.itens.map((i) => `${i.produto.nome} (${Number(i.quantidade)})`).join(', ')}
                 </td>
                 <td className="p-3">R$ {total.toFixed(2)}</td>
@@ -116,7 +131,7 @@ export default function Compras() {
           })}
           {lista.length === 0 && (
             <tr>
-              <td colSpan={5} className="p-3 text-center text-gray-400">
+              <td colSpan={6} className="p-3 text-center text-gray-400">
                 Nenhuma compra registrada
               </td>
             </tr>
@@ -155,6 +170,29 @@ export default function Compras() {
             <input type="checkbox" checked={comNota} onChange={(e) => setComNota(e.target.checked)} />
             Compra com nota fiscal
           </label>
+
+          <label className="block text-sm mb-1">Forma de Pagamento</label>
+          <select
+            className="w-full border rounded px-3 py-2 mb-4"
+            value={formaPagamento}
+            onChange={(e) => setFormaPagamento(e.target.value)}
+          >
+            <option value="BOLETO">Boleto</option>
+            <option value="FIADO">Fiado</option>
+            <option value="A_VISTA">À Vista</option>
+          </select>
+
+          {formaPagamento !== 'A_VISTA' && (
+            <>
+              <label className="block text-sm mb-1">Vencimento (opcional, padrão 30 dias)</label>
+              <input
+                type="date"
+                className="w-full border rounded px-3 py-2 mb-4"
+                value={vencimento}
+                onChange={(e) => setVencimento(e.target.value)}
+              />
+            </>
+          )}
 
           <div className="mb-2 font-medium text-sm">Itens</div>
           {itens.map((item, index) => (

@@ -28,6 +28,7 @@ enum CategoriaDespesa {
   COMBUSTIVEL
   MANUTENCAO
   IMPOSTO
+  MERCADORIA
   OUTROS
 }
 
@@ -76,13 +77,16 @@ model Cliente {
 }
 
 model Compra {
-  id         Int          @id @default(autoincrement())
-  fornecedor   Fornecedor @relation(fields: [fornecedorId], references: [id])
-  fornecedorId Int
-  data       DateTime
-  comNota    Boolean      @default(false)
-  itens      ItemCompra[]
-  createdAt  DateTime     @default(now())
+  id             Int            @id @default(autoincrement())
+  fornecedor     Fornecedor     @relation(fields: [fornecedorId], references: [id])
+  fornecedorId   Int
+  data           DateTime
+  comNota        Boolean        @default(false)
+  formaPagamento FormaPagamento @default(BOLETO)
+  vencimento     DateTime?
+  itens          ItemCompra[]
+  contasPagar    ContaPagar[]
+  createdAt      DateTime       @default(now())
 }
 
 model ItemCompra {
@@ -137,6 +141,8 @@ model ContaPagar {
   vencimento  DateTime
   status      StatusConta      @default(PENDENTE)
   pagoEm      DateTime?
+  compra      Compra?          @relation(fields: [compraId], references: [id])
+  compraId    Int?
   movimentos  MovimentoCaixa[]
   createdAt   DateTime         @default(now())
 }

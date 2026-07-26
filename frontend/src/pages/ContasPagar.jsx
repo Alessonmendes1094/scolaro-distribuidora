@@ -115,6 +115,7 @@ export default function ContasPagar() {
             <option value="COMBUSTIVEL">Combustível</option>
             <option value="MANUTENCAO">Manutenção</option>
             <option value="IMPOSTO">Imposto</option>
+            <option value="MERCADORIA">Mercadoria</option>
             <option value="OUTROS">Outros</option>
           </select>
           <label className="block text-sm mb-1">Valor</label>
