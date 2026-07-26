@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../lib/api';
+import { formatarData } from '../lib/date';
 
 export default function ReciboPagamento() {
   const { baixaId } = useParams();
@@ -52,7 +53,7 @@ export default function ReciboPagamento() {
         </div>
         <div className="text-right">
           <div className="font-semibold">Data do Recebimento</div>
-          <div>{new Date(baixa.data).toLocaleDateString('pt-BR')}</div>
+          <div>{formatarData(baixa.data)}</div>
         </div>
       </div>
 

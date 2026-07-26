@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../lib/api';
+import { formatarData } from '../lib/date';
 import Modal from '../components/Modal.jsx';
 import VendaDetalheModal from '../components/VendaDetalheModal.jsx';
 import { FORMA_PAGAMENTO_LABEL, FORMA_PAGAMENTO_OPCOES, FORMAS_PAGAMENTO_IMEDIATAS } from '../lib/formaPagamento';
@@ -232,6 +233,7 @@ export default function Vendas() {
         </select>
       </div>
 
+      <div className="overflow-x-auto">
       <table className="w-full bg-white rounded shadow overflow-hidden">
         <thead className="bg-slate-100 text-left text-sm">
           <tr>
@@ -266,7 +268,7 @@ export default function Vendas() {
                   </button>
                 </td>
                 <td className="p-3">{v.empresa?.razaoSocial}</td>
-                <td className="p-3">{new Date(v.data).toLocaleDateString('pt-BR')}</td>
+                <td className="p-3">{formatarData(v.data)}</td>
                 <td className="p-3">{v.cliente?.nome}</td>
                 <td className="p-3">{FORMA_PAGAMENTO_LABEL[v.formaPagamento]}</td>
                 <td className="p-3">{v.comNota ? 'Sim' : 'Não'}</td>
@@ -315,6 +317,7 @@ export default function Vendas() {
           )}
         </tbody>
       </table>
+      </div>
 
       <Modal
         open={modalAberto}
@@ -364,7 +367,7 @@ export default function Vendas() {
             <div className="bg-gray-50 border rounded p-3 mb-4 text-sm">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">
-                  Última venda ({new Date(ultimaVenda.data).toLocaleDateString('pt-BR')})
+                  Última venda ({formatarData(ultimaVenda.data)})
                 </span>
                 <button
                   type="button"

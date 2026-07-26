@@ -58,6 +58,7 @@ export default function Fornecedores() {
         </button>
       </div>
 
+      <div className="overflow-x-auto">
       <table className="w-full bg-white rounded shadow overflow-hidden">
         <thead className="bg-slate-100 text-left text-sm">
           <tr>
@@ -90,6 +91,7 @@ export default function Fornecedores() {
           )}
         </tbody>
       </table>
+      </div>
 
       <Modal
         open={modalAberto}

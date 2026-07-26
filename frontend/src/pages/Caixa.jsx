@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
+import { formatarData } from '../lib/date';
 import Modal from '../components/Modal.jsx';
 
 export default function Caixa() {
@@ -60,7 +61,7 @@ export default function Caixa() {
         </button>
       </div>
 
-      <div className="flex gap-3 items-end mb-4">
+      <div className="flex flex-wrap gap-3 items-end mb-4">
         <div>
           <label className="block text-sm mb-1">Data Início</label>
           <input
@@ -87,7 +88,7 @@ export default function Caixa() {
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded shadow p-4">
           <div className="text-sm text-gray-500">Entradas</div>
           <div className="text-xl font-bold text-green-700">
@@ -104,6 +105,7 @@ export default function Caixa() {
         </div>
       </div>
 
+      <div className="overflow-x-auto">
       <table className="w-full bg-white rounded shadow overflow-hidden">
         <thead className="bg-slate-100 text-left text-sm">
           <tr>
@@ -116,7 +118,7 @@ export default function Caixa() {
         <tbody className="text-sm">
           {resumo.movimentos.map((m) => (
             <tr key={m.id} className="border-t">
-              <td className="p-3">{new Date(m.data).toLocaleDateString('pt-BR')}</td>
+              <td className="p-3">{formatarData(m.data)}</td>
               <td className="p-3">
                 <span
                   className={
@@ -141,6 +143,7 @@ export default function Caixa() {
           )}
         </tbody>
       </table>
+      </div>
 
       <Modal open={modalAberto} title="Ajustar Caixa" onClose={() => setModalAberto(false)}>
         <form onSubmit={salvarAjuste}>

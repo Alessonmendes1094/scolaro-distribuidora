@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../lib/api';
+import { formatarData } from '../lib/date';
 import { baixarCsv } from '../lib/csv';
 import { baixarPdf } from '../lib/pdf';
 import { STATUS_LABEL, STATUS_BADGE } from '../lib/status';
@@ -156,7 +157,7 @@ export default function Relatorios() {
           linhas.push({
             cliente: grupo.clienteNome,
             vendaId: v.id,
-            data: new Date(v.data).toLocaleDateString('pt-BR'),
+            data: formatarData(v.data),
             formaPagamento: FORMA_PAGAMENTO_LABEL[v.formaPagamento] || v.formaPagamento,
             quantidade: v.quantidade,
             valorTotal: v.valorTotal.toFixed(2),
@@ -169,10 +170,10 @@ export default function Relatorios() {
           linhas.push({
             cliente: grupo.clienteNome,
             vendaId: p.vendaId,
-            dataVenda: new Date(p.dataVenda).toLocaleDateString('pt-BR'),
+            dataVenda: formatarData(p.dataVenda),
             valorVenda: p.valorVenda.toFixed(2),
             valorPendencia: p.valor.toFixed(2),
-            pagoEm: new Date(p.pagoEm).toLocaleDateString('pt-BR'),
+            pagoEm: formatarData(p.pagoEm),
             codigoBaixa: p.codigoBaixa || '',
           });
         }
@@ -181,10 +182,10 @@ export default function Relatorios() {
           linhas.push({
             cliente: grupo.clienteNome,
             vendaId: p.vendaId,
-            dataVenda: new Date(p.dataVenda).toLocaleDateString('pt-BR'),
+            dataVenda: formatarData(p.dataVenda),
             valorVenda: p.valorVenda.toFixed(2),
             valorPendencia: p.valor.toFixed(2),
-            vencimento: new Date(p.vencimento).toLocaleDateString('pt-BR'),
+            vencimento: formatarData(p.vencimento),
             status: STATUS_LABEL[p.status] || p.status,
             diasAtraso: p.diasAtraso ?? '',
           });
@@ -194,11 +195,11 @@ export default function Relatorios() {
           linhas.push({
             cliente: grupo.clienteNome,
             vendaId: p.vendaId,
-            dataVenda: new Date(p.dataVenda).toLocaleDateString('pt-BR'),
+            dataVenda: formatarData(p.dataVenda),
             valorVenda: p.valorVenda.toFixed(2),
             valorPerdido: p.valor.toFixed(2),
-            vencimentoOriginal: new Date(p.vencimentoOriginal).toLocaleDateString('pt-BR'),
-            perdidoEm: p.perdidoEm ? new Date(p.perdidoEm).toLocaleDateString('pt-BR') : '',
+            vencimentoOriginal: formatarData(p.vencimentoOriginal),
+            perdidoEm: p.perdidoEm ? formatarData(p.perdidoEm) : '',
             motivo: p.motivo || '',
           });
         }
@@ -265,8 +266,8 @@ export default function Relatorios() {
     if (status) subtitulos.push(`Status: ${STATUS_LABEL[status] || status}`);
     if (dataInicio || dataFim) {
       subtitulos.push(
-        `Período: ${dataInicio ? new Date(dataInicio).toLocaleDateString('pt-BR') : '...'} até ${
-          dataFim ? new Date(dataFim).toLocaleDateString('pt-BR') : '...'
+        `Período: ${dataInicio ? formatarData(dataInicio) : '...'} até ${
+          dataFim ? formatarData(dataFim) : '...'
         }`
       );
     }
@@ -282,7 +283,7 @@ export default function Relatorios() {
           linhas.push([
             grupo.clienteNome,
             `#${v.id}`,
-            new Date(v.data).toLocaleDateString('pt-BR'),
+            formatarData(v.data),
             FORMA_PAGAMENTO_LABEL[v.formaPagamento] || v.formaPagamento,
             v.quantidade,
             `R$ ${v.valorTotal.toFixed(2)}`,
@@ -297,10 +298,10 @@ export default function Relatorios() {
           linhas.push([
             grupo.clienteNome,
             `#${p.vendaId}`,
-            new Date(p.dataVenda).toLocaleDateString('pt-BR'),
+            formatarData(p.dataVenda),
             `R$ ${p.valorVenda.toFixed(2)}`,
             `R$ ${p.valor.toFixed(2)}`,
-            new Date(p.pagoEm).toLocaleDateString('pt-BR'),
+            formatarData(p.pagoEm),
             p.codigoBaixa || '-',
           ]);
         }
@@ -313,10 +314,10 @@ export default function Relatorios() {
           linhas.push([
             grupo.clienteNome,
             `#${p.vendaId}`,
-            new Date(p.dataVenda).toLocaleDateString('pt-BR'),
+            formatarData(p.dataVenda),
             `R$ ${p.valorVenda.toFixed(2)}`,
             `R$ ${p.valor.toFixed(2)}`,
-            new Date(p.vencimento).toLocaleDateString('pt-BR'),
+            formatarData(p.vencimento),
             p.diasAtraso != null ? `${statusTexto} (${p.diasAtraso}d)` : statusTexto,
           ]);
         }
@@ -328,11 +329,11 @@ export default function Relatorios() {
           linhas.push([
             grupo.clienteNome,
             `#${p.vendaId}`,
-            new Date(p.dataVenda).toLocaleDateString('pt-BR'),
+            formatarData(p.dataVenda),
             `R$ ${p.valorVenda.toFixed(2)}`,
             `R$ ${p.valor.toFixed(2)}`,
-            new Date(p.vencimentoOriginal).toLocaleDateString('pt-BR'),
-            p.perdidoEm ? new Date(p.perdidoEm).toLocaleDateString('pt-BR') : '-',
+            formatarData(p.vencimentoOriginal),
+            p.perdidoEm ? formatarData(p.perdidoEm) : '-',
             p.motivo || '-',
           ]);
         }
@@ -352,7 +353,7 @@ export default function Relatorios() {
     <div>
       <h1 className="text-2xl font-bold mb-4">Relatórios</h1>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
         {ABAS.map((a) => (
           <button
             key={a.id}
@@ -360,7 +361,7 @@ export default function Relatorios() {
               setAba(a.id);
               setResultado([]);
             }}
-            className={`px-4 py-2 rounded text-sm ${
+            className={`px-4 py-2 rounded text-sm whitespace-nowrap ${
               aba === a.id ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'
             }`}
           >
@@ -652,7 +653,7 @@ export default function Relatorios() {
                           #{v.id}
                         </button>
                       </td>
-                      <td className="py-1">{new Date(v.data).toLocaleDateString('pt-BR')}</td>
+                      <td className="py-1">{formatarData(v.data)}</td>
                       <td className="py-1">{FORMA_PAGAMENTO_LABEL[v.formaPagamento]}</td>
                       <td className="py-1">{v.quantidade}</td>
                       <td className="py-1">R$ {v.valorTotal.toFixed(2)}</td>
@@ -689,11 +690,11 @@ export default function Relatorios() {
                           #{p.vendaId}
                         </button>
                       </td>
-                      <td className="py-1">{new Date(p.dataVenda).toLocaleDateString('pt-BR')}</td>
+                      <td className="py-1">{formatarData(p.dataVenda)}</td>
                       <td className="py-1">R$ {p.valorVenda.toFixed(2)}</td>
                       <td className="py-1">R$ {p.valor.toFixed(2)}</td>
                       <td className="py-1">{p.codigoBaixa || '-'}</td>
-                      <td className="py-1">{new Date(p.pagoEm).toLocaleDateString('pt-BR')}</td>
+                      <td className="py-1">{formatarData(p.pagoEm)}</td>
                       <td className="py-1">
                         {p.baixaId && (
                           <button
@@ -733,10 +734,10 @@ export default function Relatorios() {
                           #{p.vendaId}
                         </button>
                       </td>
-                      <td className="py-1">{new Date(p.dataVenda).toLocaleDateString('pt-BR')}</td>
+                      <td className="py-1">{formatarData(p.dataVenda)}</td>
                       <td className="py-1">R$ {p.valorVenda.toFixed(2)}</td>
                       <td className="py-1">R$ {p.valor.toFixed(2)}</td>
-                      <td className="py-1">{new Date(p.vencimento).toLocaleDateString('pt-BR')}</td>
+                      <td className="py-1">{formatarData(p.vencimento)}</td>
                       <td className="py-1">
                         <StatusPendenciaBadge status={p.status} diasAtraso={p.diasAtraso} />
                       </td>
@@ -770,16 +771,16 @@ export default function Relatorios() {
                           #{p.vendaId}
                         </button>
                       </td>
-                      <td className="py-1">{new Date(p.dataVenda).toLocaleDateString('pt-BR')}</td>
+                      <td className="py-1">{formatarData(p.dataVenda)}</td>
                       <td className="py-1">R$ {p.valorVenda.toFixed(2)}</td>
                       <td className="py-1 font-medium text-gray-700">
                         R$ {p.valor.toFixed(2)}
                       </td>
                       <td className="py-1">
-                        {new Date(p.vencimentoOriginal).toLocaleDateString('pt-BR')}
+                        {formatarData(p.vencimentoOriginal)}
                       </td>
                       <td className="py-1">
-                        {p.perdidoEm ? new Date(p.perdidoEm).toLocaleDateString('pt-BR') : '-'}
+                        {p.perdidoEm ? formatarData(p.perdidoEm) : '-'}
                       </td>
                       <td className="py-1">{p.motivo || '-'}</td>
                     </tr>

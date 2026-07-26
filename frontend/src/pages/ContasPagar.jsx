@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
+import { formatarData } from '../lib/date';
 import Modal from '../components/Modal.jsx';
 import CompraDetalheModal from '../components/CompraDetalheModal.jsx';
 import { STATUS_LABEL } from '../lib/status';
@@ -77,6 +78,7 @@ export default function ContasPagar() {
         </button>
       </div>
 
+      <div className="overflow-x-auto">
       <table className="w-full bg-white rounded shadow overflow-hidden">
         <thead className="bg-slate-100 text-left text-sm">
           <tr>
@@ -107,7 +109,7 @@ export default function ContasPagar() {
               </td>
               <td className="p-3">{c.categoria}</td>
               <td className="p-3">R$ {Number(c.valor).toFixed(2)}</td>
-              <td className="p-3">{new Date(c.vencimento).toLocaleDateString('pt-BR')}</td>
+              <td className="p-3">{formatarData(c.vencimento)}</td>
               <td className="p-3">
                 <span className={`px-2 py-1 rounded text-xs ${badge[c.status]}`}>
                   {STATUS_LABEL[c.status]}
@@ -141,6 +143,7 @@ export default function ContasPagar() {
           )}
         </tbody>
       </table>
+      </div>
 
       <Modal open={modalAberto} title="Nova Despesa" onClose={() => setModalAberto(false)}>
         <form onSubmit={salvar}>

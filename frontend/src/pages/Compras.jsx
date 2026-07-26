@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../lib/api';
+import { formatarData } from '../lib/date';
 import Modal from '../components/Modal.jsx';
 import CompraDetalheModal from '../components/CompraDetalheModal.jsx';
 import { FORMA_PAGAMENTO_LABEL, FORMA_PAGAMENTO_OPCOES, FORMAS_PAGAMENTO_IMEDIATAS } from '../lib/formaPagamento';
@@ -141,6 +142,7 @@ export default function Compras() {
         </button>
       </div>
 
+      <div className="overflow-x-auto">
       <table className="w-full bg-white rounded shadow overflow-hidden">
         <thead className="bg-slate-100 text-left text-sm">
           <tr>
@@ -171,14 +173,14 @@ export default function Compras() {
                     #{c.id}
                   </button>
                 </td>
-                <td className="p-3">{new Date(c.data).toLocaleDateString('pt-BR')}</td>
+                <td className="p-3">{formatarData(c.data)}</td>
                 <td className="p-3">{c.fornecedor?.nome}</td>
                 <td className="p-3">{c.comNota ? 'Sim' : 'Não'}</td>
                 <td className="p-3">
                   {FORMA_PAGAMENTO_LABEL[c.formaPagamento]}
                   {!FORMAS_PAGAMENTO_IMEDIATAS.includes(c.formaPagamento) && c.vencimento && (
                     <div className="text-xs text-gray-500">
-                      Venc.: {new Date(c.vencimento).toLocaleDateString('pt-BR')}
+                      Venc.: {formatarData(c.vencimento)}
                     </div>
                   )}
                 </td>
@@ -218,6 +220,7 @@ export default function Compras() {
           )}
         </tbody>
       </table>
+      </div>
 
       <Modal
         open={modalAberto}

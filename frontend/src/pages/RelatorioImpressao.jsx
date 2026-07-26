@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import api from '../lib/api';
+import { formatarData } from '../lib/date';
 import { baixarPdf } from '../lib/pdf';
 import { STATUS_LABEL, STATUS_BADGE } from '../lib/status';
 import { FORMA_PAGAMENTO_LABEL } from '../lib/formaPagamento';
@@ -67,8 +68,8 @@ export default function RelatorioImpressao() {
     }
     if (dataInicio || dataFim) {
       subtitulos.push(
-        `Período: ${dataInicio ? new Date(dataInicio).toLocaleDateString('pt-BR') : '...'} até ${
-          dataFim ? new Date(dataFim).toLocaleDateString('pt-BR') : '...'
+        `Período: ${dataInicio ? formatarData(dataInicio) : '...'} até ${
+          dataFim ? formatarData(dataFim) : '...'
         }`
       );
     }
@@ -84,7 +85,7 @@ export default function RelatorioImpressao() {
           linhas.push([
             grupo.clienteNome,
             `#${v.id}`,
-            new Date(v.data).toLocaleDateString('pt-BR'),
+            formatarData(v.data),
             FORMA_PAGAMENTO_LABEL[v.formaPagamento] || v.formaPagamento,
             v.quantidade,
             `R$ ${v.valorTotal.toFixed(2)}`,
@@ -99,10 +100,10 @@ export default function RelatorioImpressao() {
           linhas.push([
             grupo.clienteNome,
             `#${p.vendaId}`,
-            new Date(p.dataVenda).toLocaleDateString('pt-BR'),
+            formatarData(p.dataVenda),
             `R$ ${p.valorVenda.toFixed(2)}`,
             `R$ ${p.valor.toFixed(2)}`,
-            new Date(p.pagoEm).toLocaleDateString('pt-BR'),
+            formatarData(p.pagoEm),
             p.codigoBaixa || '-',
           ]);
         }
@@ -115,10 +116,10 @@ export default function RelatorioImpressao() {
           linhas.push([
             grupo.clienteNome,
             `#${p.vendaId}`,
-            new Date(p.dataVenda).toLocaleDateString('pt-BR'),
+            formatarData(p.dataVenda),
             `R$ ${p.valorVenda.toFixed(2)}`,
             `R$ ${p.valor.toFixed(2)}`,
-            new Date(p.vencimento).toLocaleDateString('pt-BR'),
+            formatarData(p.vencimento),
             p.diasAtraso != null ? `${statusTexto} (${p.diasAtraso}d)` : statusTexto,
           ]);
         }
@@ -163,8 +164,8 @@ export default function RelatorioImpressao() {
           )}
           {(dataInicio || dataFim) && (
             <p className="text-gray-600">
-              Período: {dataInicio ? new Date(dataInicio).toLocaleDateString('pt-BR') : '...'} até{' '}
-              {dataFim ? new Date(dataFim).toLocaleDateString('pt-BR') : '...'}
+              Período: {dataInicio ? formatarData(dataInicio) : '...'} até{' '}
+              {dataFim ? formatarData(dataFim) : '...'}
             </p>
           )}
         </div>
@@ -193,7 +194,7 @@ export default function RelatorioImpressao() {
                 {grupo.vendas.map((v) => (
                   <tr key={v.id} className="border-t border-gray-200">
                     <td className="py-1">#{v.id}</td>
-                    <td className="py-1">{new Date(v.data).toLocaleDateString('pt-BR')}</td>
+                    <td className="py-1">{formatarData(v.data)}</td>
                     <td className="py-1">{FORMA_PAGAMENTO_LABEL[v.formaPagamento]}</td>
                     <td className="py-1">{v.quantidade}</td>
                     <td className="py-1">R$ {v.valorTotal.toFixed(2)}</td>
@@ -222,12 +223,12 @@ export default function RelatorioImpressao() {
                 {grupo.pagamentos.map((p) => (
                   <tr key={p.contaId} className="border-t border-gray-200">
                     <td className="py-1">#{p.vendaId}</td>
-                    <td className="py-1">{new Date(p.dataVenda).toLocaleDateString('pt-BR')}</td>
+                    <td className="py-1">{formatarData(p.dataVenda)}</td>
                     <td className="py-1">R$ {p.valorVenda.toFixed(2)}</td>
                     <td className="py-1">R$ {p.valor.toFixed(2)}</td>
                     <td className="py-1">{p.codigoBaixa || '-'}</td>
                     <td className="py-1 text-right">
-                      {new Date(p.pagoEm).toLocaleDateString('pt-BR')}
+                      {formatarData(p.pagoEm)}
                     </td>
                   </tr>
                 ))}
@@ -251,10 +252,10 @@ export default function RelatorioImpressao() {
                 {grupo.pendencias.map((p) => (
                   <tr key={p.contaId} className="border-t border-gray-200">
                     <td className="py-1">#{p.vendaId}</td>
-                    <td className="py-1">{new Date(p.dataVenda).toLocaleDateString('pt-BR')}</td>
+                    <td className="py-1">{formatarData(p.dataVenda)}</td>
                     <td className="py-1">R$ {p.valorVenda.toFixed(2)}</td>
                     <td className="py-1">R$ {p.valor.toFixed(2)}</td>
-                    <td className="py-1">{new Date(p.vencimento).toLocaleDateString('pt-BR')}</td>
+                    <td className="py-1">{formatarData(p.vencimento)}</td>
                     <td className="py-1 text-right">
                       <StatusPendenciaBadge status={p.status} diasAtraso={p.diasAtraso} />
                     </td>

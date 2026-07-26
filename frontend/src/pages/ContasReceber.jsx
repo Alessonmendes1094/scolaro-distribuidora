@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import api from '../lib/api';
+import { formatarData } from '../lib/date';
 import { STATUS_LABEL, STATUS_BADGE } from '../lib/status';
 import VendaDetalheModal from '../components/VendaDetalheModal.jsx';
 
@@ -194,6 +195,7 @@ export default function ContasReceber() {
         </div>
       )}
 
+      <div className="overflow-x-auto">
       <table className="w-full bg-white rounded shadow overflow-hidden">
         <thead className="bg-slate-100 text-left text-sm">
           <tr>
@@ -229,7 +231,7 @@ export default function ContasReceber() {
                 </button>
               </td>
               <td className="p-3">R$ {Number(c.valor).toFixed(2)}</td>
-              <td className="p-3">{new Date(c.vencimento).toLocaleDateString('pt-BR')}</td>
+              <td className="p-3">{formatarData(c.vencimento)}</td>
               <td className="p-3">
                 <span className={`px-2 py-1 rounded text-xs ${STATUS_BADGE[c.status]}`}>
                   {STATUS_LABEL[c.status]}
@@ -297,6 +299,7 @@ export default function ContasReceber() {
           )}
         </tbody>
       </table>
+      </div>
 
       {pendentesSelecionaveis.length === 0 && lista.length > 0 && (
         <div className="text-xs text-gray-400 mt-2">Todas as pendências deste filtro já foram pagas.</div>

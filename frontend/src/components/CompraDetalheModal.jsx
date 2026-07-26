@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
+import { formatarData } from '../lib/date';
 import Modal from './Modal.jsx';
 import { STATUS_LABEL, STATUS_BADGE } from '../lib/status';
 import { FORMA_PAGAMENTO_LABEL } from '../lib/formaPagamento';
@@ -40,7 +41,7 @@ export default function CompraDetalheModal({ compraId, onClose }) {
             </div>
             <div>
               <div className="text-gray-500">Data</div>
-              <div className="font-medium">{new Date(compra.data).toLocaleDateString('pt-BR')}</div>
+              <div className="font-medium">{formatarData(compra.data)}</div>
             </div>
             <div>
               <div className="text-gray-500">Forma de Pagamento</div>
@@ -56,7 +57,7 @@ export default function CompraDetalheModal({ compraId, onClose }) {
                   <div key={c.id} className="flex justify-between items-center">
                     <span>
                       R$ {Number(c.valor).toFixed(2)} — venc.{' '}
-                      {new Date(c.vencimento).toLocaleDateString('pt-BR')}
+                      {formatarData(c.vencimento)}
                     </span>
                     <span className={`px-2 py-0.5 rounded text-xs ${STATUS_BADGE[c.status]}`}>
                       {STATUS_LABEL[c.status]}

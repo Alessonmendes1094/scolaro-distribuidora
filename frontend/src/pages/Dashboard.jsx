@@ -56,7 +56,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-3">
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <div className="flex gap-2">
           <button
@@ -74,7 +74,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="flex gap-3 items-end mb-6">
+      <div className="flex flex-wrap gap-3 items-end mb-6">
         <div>
           <label className="block text-sm mb-1">Data Início</label>
           <input
@@ -117,7 +117,7 @@ export default function Dashboard() {
       </div>
 
       <div className="text-sm font-semibold text-gray-500 mb-2">Movimento do Período</div>
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded shadow p-4">
           <div className="text-sm text-gray-500">Total Vendido</div>
           <div className="text-2xl font-bold">R$ {dados.totalVendido.toFixed(2)}</div>
@@ -139,10 +139,10 @@ export default function Dashboard() {
       </div>
 
       <div className="text-sm font-semibold text-gray-500 mb-2">Pendências (todas as datas)</div>
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded shadow p-4">
           <div className="text-sm font-medium text-gray-700 mb-3">Contas a Receber</div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2 text-center sm:text-left">
             <div>
               <div className="text-xs text-gray-500">Em Aberto</div>
               <div className="text-lg font-bold text-yellow-700">
@@ -163,7 +163,7 @@ export default function Dashboard() {
         </div>
         <div className="bg-white rounded shadow p-4">
           <div className="text-sm font-medium text-gray-700 mb-3">Contas a Pagar</div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2 text-center sm:text-left">
             <div>
               <div className="text-xs text-gray-500">Em Aberto</div>
               <div className="text-lg font-bold text-yellow-700">
@@ -233,7 +233,7 @@ export default function Dashboard() {
             <Bar dataKey="Vendas" fill="#16a34a" />
           </BarChart>
         </ResponsiveContainer>
-        <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 text-sm">
           <div>
             <div className="text-gray-500">Total Comprado com Nota</div>
             <div className="font-semibold">R$ {dados.totalCompradoComNota.toFixed(2)}</div>

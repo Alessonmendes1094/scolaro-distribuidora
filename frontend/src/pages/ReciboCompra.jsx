@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../lib/api';
+import { formatarData } from '../lib/date';
 import { FORMA_PAGAMENTO_LABEL } from '../lib/formaPagamento';
 
 export default function ReciboCompra() {
@@ -63,14 +64,14 @@ export default function ReciboCompra() {
         </div>
         <div className="text-right">
           <div className="font-semibold">Data da Compra</div>
-          <div>{new Date(compra.data).toLocaleDateString('pt-BR')}</div>
+          <div>{formatarData(compra.data)}</div>
           {exibirFormaPagamento && (
             <>
               <div className="font-semibold mt-2">Forma de Pagamento</div>
               <div>{FORMA_PAGAMENTO_LABEL[compra.formaPagamento]}</div>
               {contaPagar && (
                 <div className="mt-1">
-                  Vencimento: {new Date(contaPagar.vencimento).toLocaleDateString('pt-BR')}
+                  Vencimento: {formatarData(contaPagar.vencimento)}
                 </div>
               )}
             </>
