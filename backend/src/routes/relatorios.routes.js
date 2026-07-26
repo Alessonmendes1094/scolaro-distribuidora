@@ -266,4 +266,77 @@ router.get('/resumo-mensal', async (req, res) => {
   res.json(resultado);
 });
 
+// Resumo anual por cliente: agrupa vendas por ano (mais recente primeiro),
+// mostrando total do ano e o detalhamento por cliente dentro do ano.
+router.get('/resumo-anual', async (req, res) => {
+  const anos = Math.max(1, Math.min(15, Number(req.query.anos) || 3));
+
+  const hoje = new Date();
+  const dataFim = new Date(hoje.getFullYear(), 11, 31, 23, 59, 59, 999);
+  const dataInicio = new Date(hoje.getFullYear() - (anos - 1), 0, 1);
+
+  const vendas = await prisma.venda.findMany({
+    where: {
+      data: { gte: dataInicio, lte: dataFim },
+      ...empresaWhere(req.query),
+      ...clienteWhere(req.query),
+    },
+    include: { cliente: true, itens: true },
+    orderBy: { data: 'desc' },
+  });
+
+  const porAno = {};
+  for (const venda of vendas) {
+    const dataVenda = new Date(venda.data);
+    const chaveAno = String(dataVenda.getFullYear());
+
+    const valorVenda = venda.itens.reduce(
+      (s, i) => s + Number(i.quantidade) * Number(i.precoUnitario),
+      0
+    );
+    const lucroVenda = venda.itens.reduce(
+      (s, i) => s + (Number(i.precoUnitario) - Number(i.custoUnitario ?? 0)) * Number(i.quantidade),
+      0
+    );
+
+    if (!porAno[chaveAno]) {
+      porAno[chaveAno] = {
+        ano: dataVenda.getFullYear(),
+        totalVendido: 0,
+        lucroTotal: 0,
+        quantidadeVendas: 0,
+        clientes: {},
+      };
+    }
+
+    const grupoAno = porAno[chaveAno];
+    grupoAno.totalVendido += valorVenda;
+    grupoAno.lucroTotal += lucroVenda;
+    grupoAno.quantidadeVendas += 1;
+
+    if (!grupoAno.clientes[venda.clienteId]) {
+      grupoAno.clientes[venda.clienteId] = {
+        clienteId: venda.clienteId,
+        clienteNome: venda.cliente.nome,
+        quantidadeVendas: 0,
+        valorTotal: 0,
+        lucroTotal: 0,
+      };
+    }
+    const grupoCliente = grupoAno.clientes[venda.clienteId];
+    grupoCliente.quantidadeVendas += 1;
+    grupoCliente.valorTotal += valorVenda;
+    grupoCliente.lucroTotal += lucroVenda;
+  }
+
+  const resultado = Object.values(porAno)
+    .map((grupoAno) => ({
+      ...grupoAno,
+      clientes: Object.values(grupoAno.clientes).sort((a, b) => b.valorTotal - a.valorTotal),
+    }))
+    .sort((a, b) => b.ano - a.ano);
+
+  res.json(resultado);
+});
+
 module.exports = router;

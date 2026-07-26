@@ -11,6 +11,7 @@ const ABAS = [
   { id: 'pagamentos-recebidos', label: 'Pagamentos Recebidos' },
   { id: 'pagamentos-pendentes', label: 'Pagamentos Pendentes' },
   { id: 'resumo-mensal', label: 'Resumo Mensal por Cliente' },
+  { id: 'resumo-anual', label: 'Resumo Anual por Cliente' },
 ];
 
 const TITULOS = {
@@ -18,6 +19,7 @@ const TITULOS = {
   'pagamentos-recebidos': 'Relatório de Pagamentos Recebidos',
   'pagamentos-pendentes': 'Relatório de Pagamentos Pendentes',
   'resumo-mensal': 'Resumo Mensal por Cliente',
+  'resumo-anual': 'Resumo Anual por Cliente',
 };
 
 const NOMES_MESES = [
@@ -50,6 +52,7 @@ export default function Relatorios() {
   const [clientes, setClientes] = useState([]);
   const [status, setStatus] = useState('');
   const [meses, setMeses] = useState(6);
+  const [anos, setAnos] = useState(3);
   const [resultado, setResultado] = useState([]);
   const [vendaDetalheId, setVendaDetalheId] = useState(null);
 
@@ -80,6 +83,8 @@ export default function Relatorios() {
     const params = {};
     if (aba === 'resumo-mensal') {
       params.meses = meses;
+    } else if (aba === 'resumo-anual') {
+      params.anos = anos;
     } else {
       if (dataInicio) params.dataInicio = dataInicio;
       if (dataFim) params.dataFim = dataFim;
@@ -117,6 +122,23 @@ export default function Relatorios() {
         }
       }
       baixarCsv('resumo-mensal.csv', linhasMensal);
+      return;
+    }
+
+    if (aba === 'resumo-anual') {
+      const linhasAnual = [];
+      for (const grupoAno of resultado) {
+        for (const c of grupoAno.clientes) {
+          linhasAnual.push({
+            ano: grupoAno.ano,
+            cliente: c.clienteNome,
+            quantidadeVendas: c.quantidadeVendas,
+            valorTotal: c.valorTotal.toFixed(2),
+            lucroTotal: c.lucroTotal.toFixed(2),
+          });
+        }
+      }
+      baixarCsv('resumo-anual.csv', linhasAnual);
       return;
     }
 
@@ -191,6 +213,31 @@ export default function Relatorios() {
         subtitulos,
         colunas: colunasMensal,
         linhas: linhasMensal,
+      });
+      return;
+    }
+
+    if (aba === 'resumo-anual') {
+      subtitulos.push(`Últimos ${anos} anos`);
+      const colunasAnual = ['Ano', 'Cliente', 'Qtd. Vendas', 'Valor Vendido', 'Lucro'];
+      const linhasAnual = [];
+      for (const grupoAno of resultado) {
+        for (const c of grupoAno.clientes) {
+          linhasAnual.push([
+            String(grupoAno.ano),
+            c.clienteNome,
+            c.quantidadeVendas,
+            `R$ ${c.valorTotal.toFixed(2)}`,
+            `R$ ${c.lucroTotal.toFixed(2)}`,
+          ]);
+        }
+      }
+      baixarPdf({
+        nomeArquivo: 'resumo-anual.pdf',
+        titulo: TITULOS[aba],
+        subtitulos,
+        colunas: colunasAnual,
+        linhas: linhasAnual,
       });
       return;
     }
@@ -299,6 +346,18 @@ export default function Relatorios() {
               onChange={(e) => setMeses(e.target.value)}
             />
           </div>
+        ) : aba === 'resumo-anual' ? (
+          <div>
+            <label className="block text-sm mb-1">Quantos anos atrás</label>
+            <input
+              type="number"
+              min="1"
+              max="15"
+              className="border rounded px-3 py-2 w-28"
+              value={anos}
+              onChange={(e) => setAnos(e.target.value)}
+            />
+          </div>
         ) : (
           <>
             <div>
@@ -390,8 +449,12 @@ export default function Relatorios() {
         </button>
         <button
           onClick={imprimir}
-          disabled={resultado.length === 0 || aba === 'resumo-mensal'}
-          title={aba === 'resumo-mensal' ? 'Use "Baixar PDF" para este relatório' : undefined}
+          disabled={resultado.length === 0 || aba === 'resumo-mensal' || aba === 'resumo-anual'}
+          title={
+            aba === 'resumo-mensal' || aba === 'resumo-anual'
+              ? 'Use "Baixar PDF" para este relatório'
+              : undefined
+          }
           className="bg-white border px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
         >
           Imprimir
@@ -436,6 +499,65 @@ export default function Relatorios() {
                 </thead>
                 <tbody>
                   {grupoMes.clientes.map((c) => (
+                    <tr key={c.clienteId} className="border-t">
+                      <td className="p-3">{c.clienteNome}</td>
+                      <td className="p-3">{c.quantidadeVendas}</td>
+                      <td className="p-3">R$ {c.valorTotal.toFixed(2)}</td>
+                      <td
+                        className={`p-3 font-medium ${
+                          c.lucroTotal < 0 ? 'text-red-600' : 'text-green-700'
+                        }`}
+                      >
+                        R$ {c.lucroTotal.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+          {resultado.length === 0 && (
+            <div className="text-center text-gray-400 py-8">Nenhum dado gerado ainda</div>
+          )}
+        </div>
+      ) : aba === 'resumo-anual' ? (
+        <div className="space-y-6">
+          {resultado.map((grupoAno) => (
+            <div key={grupoAno.ano} className="bg-white rounded shadow overflow-hidden">
+              <div className="bg-slate-900 text-white p-4 flex flex-wrap justify-between items-center gap-2">
+                <div className="text-lg font-bold">{grupoAno.ano}</div>
+                <div className="flex gap-6 text-sm">
+                  <div>
+                    <div className="text-slate-300">Vendas no ano</div>
+                    <div className="font-semibold">{grupoAno.quantidadeVendas}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-300">Total Vendido</div>
+                    <div className="font-semibold">R$ {grupoAno.totalVendido.toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-300">Lucro</div>
+                    <div
+                      className={`font-semibold ${
+                        grupoAno.lucroTotal < 0 ? 'text-red-400' : 'text-green-400'
+                      }`}
+                    >
+                      R$ {grupoAno.lucroTotal.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <table className="w-full text-sm">
+                <thead className="text-left text-gray-500 bg-slate-50">
+                  <tr>
+                    <th className="p-3">Cliente</th>
+                    <th className="p-3">Qtd. Vendas</th>
+                    <th className="p-3">Valor Vendido</th>
+                    <th className="p-3">Lucro</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {grupoAno.clientes.map((c) => (
                     <tr key={c.clienteId} className="border-t">
                       <td className="p-3">{c.clienteNome}</td>
                       <td className="p-3">{c.quantidadeVendas}</td>
