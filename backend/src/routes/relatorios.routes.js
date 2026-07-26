@@ -28,6 +28,17 @@ function statusPendenciaVenda(venda) {
   return 'PENDENTE';
 }
 
+function diasAtraso(vencimento) {
+  const diff = Date.now() - new Date(vencimento).getTime();
+  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+}
+
+function diasAtrasoVenda(venda) {
+  const atrasadas = (venda.contasReceber || []).filter((c) => c.status === 'ATRASADO');
+  if (atrasadas.length === 0) return null;
+  return Math.max(...atrasadas.map((c) => diasAtraso(c.vencimento)));
+}
+
 // Vendas por cliente no período
 router.get('/vendas-por-cliente', async (req, res) => {
   await prisma.contaReceber.updateMany({
@@ -70,6 +81,7 @@ router.get('/vendas-por-cliente', async (req, res) => {
       quantidade: qtdItens,
       valorTotal: totalVenda,
       statusPendencia,
+      diasAtraso: statusPendencia === 'ATRASADO' ? diasAtrasoVenda(venda) : null,
     });
     porCliente[venda.clienteId].quantidadeTotal += qtdItens;
     porCliente[venda.clienteId].valorTotal += totalVenda;
@@ -171,6 +183,7 @@ router.get('/pagamentos-pendentes', async (req, res) => {
       valor: Number(conta.valor),
       vencimento: conta.vencimento,
       status: conta.status,
+      diasAtraso: conta.status === 'ATRASADO' ? diasAtraso(conta.vencimento) : null,
     });
     porCliente[clienteId].valorTotal += Number(conta.valor);
   }

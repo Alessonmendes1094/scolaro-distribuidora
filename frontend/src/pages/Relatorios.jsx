@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import { baixarCsv } from '../lib/csv';
 import { baixarPdf } from '../lib/pdf';
-import { STATUS_LABEL } from '../lib/status';
+import { STATUS_LABEL, STATUS_BADGE } from '../lib/status';
 
 const ABAS = [
   { id: 'vendas-por-cliente', label: 'Vendas por Cliente' },
@@ -15,6 +15,17 @@ const TITULOS = {
   'pagamentos-recebidos': 'Relatório de Pagamentos Recebidos',
   'pagamentos-pendentes': 'Relatório de Pagamentos Pendentes',
 };
+
+function StatusPendenciaBadge({ status, diasAtraso }) {
+  return (
+    <span className={`px-2 py-1 rounded text-xs ${STATUS_BADGE[status]}`}>
+      {STATUS_LABEL[status] || status}
+      {status === 'ATRASADO' && diasAtraso != null && (
+        <> · {diasAtraso} {diasAtraso === 1 ? 'dia' : 'dias'}</>
+      )}
+    </span>
+  );
+}
 
 export default function Relatorios() {
   const [aba, setAba] = useState(ABAS[0].id);
@@ -85,6 +96,7 @@ export default function Relatorios() {
             quantidade: v.quantidade,
             valorTotal: v.valorTotal.toFixed(2),
             statusPendencia: STATUS_LABEL[v.statusPendencia] || v.statusPendencia,
+            diasAtraso: v.diasAtraso ?? '',
           });
         }
       } else if (aba === 'pagamentos-recebidos') {
@@ -109,6 +121,7 @@ export default function Relatorios() {
             valorPendencia: p.valor.toFixed(2),
             vencimento: new Date(p.vencimento).toLocaleDateString('pt-BR'),
             status: STATUS_LABEL[p.status] || p.status,
+            diasAtraso: p.diasAtraso ?? '',
           });
         }
       }
@@ -136,6 +149,7 @@ export default function Relatorios() {
       colunas = ['Cliente', 'Venda', 'Data', 'Pagamento', 'Qtd.', 'Valor', 'Status Pendência'];
       for (const grupo of resultado) {
         for (const v of grupo.vendas) {
+          const statusTexto = STATUS_LABEL[v.statusPendencia] || v.statusPendencia;
           linhas.push([
             grupo.clienteNome,
             `#${v.id}`,
@@ -143,7 +157,7 @@ export default function Relatorios() {
             v.formaPagamento,
             v.quantidade,
             `R$ ${v.valorTotal.toFixed(2)}`,
-            STATUS_LABEL[v.statusPendencia] || v.statusPendencia,
+            v.diasAtraso != null ? `${statusTexto} (${v.diasAtraso}d)` : statusTexto,
           ]);
         }
       }
@@ -166,6 +180,7 @@ export default function Relatorios() {
       colunas = ['Cliente', 'Venda', 'Data Venda', 'Valor Venda', 'Valor Pendente', 'Vencimento', 'Status'];
       for (const grupo of resultado) {
         for (const p of grupo.pendencias) {
+          const statusTexto = STATUS_LABEL[p.status] || p.status;
           linhas.push([
             grupo.clienteNome,
             `#${p.vendaId}`,
@@ -173,7 +188,7 @@ export default function Relatorios() {
             `R$ ${p.valorVenda.toFixed(2)}`,
             `R$ ${p.valor.toFixed(2)}`,
             new Date(p.vencimento).toLocaleDateString('pt-BR'),
-            STATUS_LABEL[p.status] || p.status,
+            p.diasAtraso != null ? `${statusTexto} (${p.diasAtraso}d)` : statusTexto,
           ]);
         }
       }
@@ -332,7 +347,9 @@ export default function Relatorios() {
                       <td className="py-1">{v.formaPagamento}</td>
                       <td className="py-1">{v.quantidade}</td>
                       <td className="py-1">R$ {v.valorTotal.toFixed(2)}</td>
-                      <td className="py-1">{STATUS_LABEL[v.statusPendencia] || v.statusPendencia}</td>
+                      <td className="py-1">
+                        <StatusPendenciaBadge status={v.statusPendencia} diasAtraso={v.diasAtraso} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -397,7 +414,9 @@ export default function Relatorios() {
                       <td className="py-1">R$ {p.valorVenda.toFixed(2)}</td>
                       <td className="py-1">R$ {p.valor.toFixed(2)}</td>
                       <td className="py-1">{new Date(p.vencimento).toLocaleDateString('pt-BR')}</td>
-                      <td className="py-1">{STATUS_LABEL[p.status]}</td>
+                      <td className="py-1">
+                        <StatusPendenciaBadge status={p.status} diasAtraso={p.diasAtraso} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
