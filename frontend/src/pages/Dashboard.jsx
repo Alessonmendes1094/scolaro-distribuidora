@@ -123,22 +123,46 @@ export default function Dashboard() {
       <div className="text-sm font-semibold text-gray-500 mb-2">Pendências (todas as datas)</div>
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-white rounded shadow p-4">
-          <div className="text-sm text-gray-500">Contas a Receber Pendente</div>
-          <div className="text-2xl font-bold">R$ {dados.contasReceber.pendente.toFixed(2)}</div>
-          {dados.contasReceber.atrasado > 0 && (
-            <div className="text-sm text-red-600 font-medium mt-1">
-              Atrasado: R$ {dados.contasReceber.atrasado.toFixed(2)}
+          <div className="text-sm font-medium text-gray-700 mb-3">Contas a Receber</div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <div className="text-xs text-gray-500">Em Aberto</div>
+              <div className="text-lg font-bold text-yellow-700">
+                R$ {dados.contasReceber.pendente.toFixed(2)}
+              </div>
             </div>
-          )}
+            <div>
+              <div className="text-xs text-gray-500">Vencido</div>
+              <div className="text-lg font-bold text-red-600">
+                R$ {dados.contasReceber.atrasado.toFixed(2)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500">Total Geral</div>
+              <div className="text-lg font-bold">R$ {dados.contasReceber.total.toFixed(2)}</div>
+            </div>
+          </div>
         </div>
         <div className="bg-white rounded shadow p-4">
-          <div className="text-sm text-gray-500">Contas a Pagar Pendente</div>
-          <div className="text-2xl font-bold">R$ {dados.contasPagar.pendente.toFixed(2)}</div>
-          {dados.contasPagar.atrasado > 0 && (
-            <div className="text-sm text-red-600 font-medium mt-1">
-              Atrasado: R$ {dados.contasPagar.atrasado.toFixed(2)}
+          <div className="text-sm font-medium text-gray-700 mb-3">Contas a Pagar</div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <div className="text-xs text-gray-500">Em Aberto</div>
+              <div className="text-lg font-bold text-yellow-700">
+                R$ {dados.contasPagar.pendente.toFixed(2)}
+              </div>
             </div>
-          )}
+            <div>
+              <div className="text-xs text-gray-500">Vencido</div>
+              <div className="text-lg font-bold text-red-600">
+                R$ {dados.contasPagar.atrasado.toFixed(2)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500">Total Geral</div>
+              <div className="text-lg font-bold">R$ {dados.contasPagar.total.toFixed(2)}</div>
+            </div>
+          </div>
         </div>
       </div>
 

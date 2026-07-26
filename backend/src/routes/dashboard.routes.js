@@ -123,10 +123,12 @@ router.get('/', async (req, res) => {
     contasReceber: {
       pendente: totalReceberPendente,
       atrasado: totalReceberAtrasado,
+      total: totalReceberPendente + totalReceberAtrasado,
     },
     contasPagar: {
       pendente: totalPagarPendente,
       atrasado: totalPagarAtrasado,
+      total: totalPagarPendente + totalPagarAtrasado,
     },
   });
 });
