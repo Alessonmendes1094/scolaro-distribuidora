@@ -218,12 +218,14 @@ export default function ContasReceber() {
                   </button>
                 ) : (
                   <>
-                    <button
-                      onClick={() => window.open(`/recibo-pagamento/${c.baixaId}`, '_blank')}
-                      className="text-blue-600 hover:underline"
-                    >
-                      Recibo
-                    </button>
+                    {c.baixaId && (
+                      <button
+                        onClick={() => window.open(`/recibo-pagamento/${c.baixaId}`, '_blank')}
+                        className="text-blue-600 hover:underline"
+                      >
+                        Recibo
+                      </button>
+                    )}
                     <button
                       onClick={() => cancelarBaixa(c.id)}
                       className="text-red-600 hover:underline"

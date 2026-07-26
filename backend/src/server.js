@@ -43,6 +43,15 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Erro interno do servidor' });
 });
 
+// Evita que um erro não tratado em uma rota (ex: promise rejeitada sem
+// try/catch) derrube o processo inteiro do servidor.
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+
 const PORT = process.env.PORT || 3333;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);

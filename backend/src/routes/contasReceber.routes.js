@@ -37,16 +37,25 @@ router.get('/', async (req, res) => {
 
 // Detalhes de uma baixa (para imprimir o recibo de pagamento)
 router.get('/baixas/:id', async (req, res) => {
-  const baixa = await prisma.baixaRecebimento.findUnique({
-    where: { id: Number(req.params.id) },
-    include: {
-      contas: {
-        include: { venda: { include: { cliente: true, empresa: true } } },
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Código de baixa inválido' });
+  }
+
+  try {
+    const baixa = await prisma.baixaRecebimento.findUnique({
+      where: { id },
+      include: {
+        contas: {
+          include: { venda: { include: { cliente: true, empresa: true } } },
+        },
       },
-    },
-  });
-  if (!baixa) return res.status(404).json({ error: 'Baixa não encontrada' });
-  res.json(baixa);
+    });
+    if (!baixa) return res.status(404).json({ error: 'Baixa não encontrada' });
+    res.json(baixa);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // body: { dataPagamento? } — data em que o recebimento foi efetivamente feito (padrão: agora)
