@@ -21,6 +21,8 @@ router.get('/:id', async (req, res) => {
 });
 
 const DIAS_VENCIMENTO_PADRAO = 30;
+const FORMAS_VALIDAS = ['FIADO', 'BOLETO', 'A_VISTA', 'PIX', 'DINHEIRO'];
+const FORMAS_IMEDIATAS = ['A_VISTA', 'PIX', 'DINHEIRO'];
 
 // body: { fornecedorId, data, comNota, formaPagamento, vencimento?, itens: [{ produtoId, quantidade, custoUnitario }] }
 router.post('/', async (req, res) => {
@@ -30,9 +32,8 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'Fornecedor, data e itens são obrigatórios' });
   }
 
-  const formasValidas = ['FIADO', 'BOLETO', 'A_VISTA'];
   const forma = formaPagamento || 'BOLETO';
-  if (!formasValidas.includes(forma)) {
+  if (!FORMAS_VALIDAS.includes(forma)) {
     return res.status(400).json({ error: 'Forma de pagamento inválida' });
   }
 
@@ -44,7 +45,7 @@ router.post('/', async (req, res) => {
 
     const compra = await prisma.$transaction(async (tx) => {
       const dataVencimento =
-        forma !== 'A_VISTA'
+        !FORMAS_IMEDIATAS.includes(forma)
           ? vencimento
             ? new Date(vencimento)
             : new Date(new Date(data).getTime() + DIAS_VENCIMENTO_PADRAO * 24 * 60 * 60 * 1000)
@@ -75,7 +76,7 @@ router.post('/', async (req, res) => {
         });
       }
 
-      if (forma !== 'A_VISTA') {
+      if (!FORMAS_IMEDIATAS.includes(forma)) {
         await tx.contaPagar.create({
           data: {
             descricao: `Compra #${novaCompra.id} - ${novaCompra.fornecedor.nome}`,
@@ -115,9 +116,8 @@ router.put('/:id', async (req, res) => {
     return res.status(400).json({ error: 'Fornecedor, data e itens são obrigatórios' });
   }
 
-  const formasValidas = ['FIADO', 'BOLETO', 'A_VISTA'];
   const forma = formaPagamento || 'BOLETO';
-  if (!formasValidas.includes(forma)) {
+  if (!FORMAS_VALIDAS.includes(forma)) {
     return res.status(400).json({ error: 'Forma de pagamento inválida' });
   }
 
@@ -149,7 +149,7 @@ router.put('/:id', async (req, res) => {
       await tx.movimentoCaixa.deleteMany({ where: { compraId } });
 
       const dataVencimento =
-        forma !== 'A_VISTA'
+        !FORMAS_IMEDIATAS.includes(forma)
           ? vencimento
             ? new Date(vencimento)
             : new Date(new Date(data).getTime() + DIAS_VENCIMENTO_PADRAO * 24 * 60 * 60 * 1000)
@@ -181,7 +181,7 @@ router.put('/:id', async (req, res) => {
         });
       }
 
-      if (forma !== 'A_VISTA') {
+      if (!FORMAS_IMEDIATAS.includes(forma)) {
         await tx.contaPagar.create({
           data: {
             descricao: `Compra #${compraAtualizada.id} - ${compraAtualizada.fornecedor.nome}`,

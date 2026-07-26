@@ -3,6 +3,7 @@ import api from '../lib/api';
 import { baixarCsv } from '../lib/csv';
 import { baixarPdf } from '../lib/pdf';
 import { STATUS_LABEL, STATUS_BADGE } from '../lib/status';
+import { FORMA_PAGAMENTO_LABEL } from '../lib/formaPagamento';
 import VendaDetalheModal from '../components/VendaDetalheModal.jsx';
 
 const ABAS = [
@@ -94,7 +95,7 @@ export default function Relatorios() {
             cliente: grupo.clienteNome,
             vendaId: v.id,
             data: new Date(v.data).toLocaleDateString('pt-BR'),
-            formaPagamento: v.formaPagamento,
+            formaPagamento: FORMA_PAGAMENTO_LABEL[v.formaPagamento] || v.formaPagamento,
             quantidade: v.quantidade,
             valorTotal: v.valorTotal.toFixed(2),
             statusPendencia: STATUS_LABEL[v.statusPendencia] || v.statusPendencia,
@@ -156,7 +157,7 @@ export default function Relatorios() {
             grupo.clienteNome,
             `#${v.id}`,
             new Date(v.data).toLocaleDateString('pt-BR'),
-            v.formaPagamento,
+            FORMA_PAGAMENTO_LABEL[v.formaPagamento] || v.formaPagamento,
             v.quantidade,
             `R$ ${v.valorTotal.toFixed(2)}`,
             v.diasAtraso != null ? `${statusTexto} (${v.diasAtraso}d)` : statusTexto,
@@ -353,7 +354,7 @@ export default function Relatorios() {
                         </button>
                       </td>
                       <td className="py-1">{new Date(v.data).toLocaleDateString('pt-BR')}</td>
-                      <td className="py-1">{v.formaPagamento}</td>
+                      <td className="py-1">{FORMA_PAGAMENTO_LABEL[v.formaPagamento]}</td>
                       <td className="py-1">{v.quantidade}</td>
                       <td className="py-1">R$ {v.valorTotal.toFixed(2)}</td>
                       <td className="py-1">

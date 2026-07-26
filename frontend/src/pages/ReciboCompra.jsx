@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../lib/api';
-
-const FORMA_PAGAMENTO_LABEL = {
-  FIADO: 'Fiado',
-  BOLETO: 'Boleto',
-  A_VISTA: 'À Vista',
-};
+import { FORMA_PAGAMENTO_LABEL } from '../lib/formaPagamento';
 
 export default function ReciboCompra() {
   const { compraId } = useParams();

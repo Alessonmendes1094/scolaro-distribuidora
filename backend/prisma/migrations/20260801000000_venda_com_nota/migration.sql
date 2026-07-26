@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Venda" ADD COLUMN "comNota" BOOLEAN NOT NULL DEFAULT false;

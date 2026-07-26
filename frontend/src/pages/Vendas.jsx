@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import Modal from '../components/Modal.jsx';
 import VendaDetalheModal from '../components/VendaDetalheModal.jsx';
+import { FORMA_PAGAMENTO_LABEL, FORMA_PAGAMENTO_OPCOES, FORMAS_PAGAMENTO_IMEDIATAS } from '../lib/formaPagamento';
 
 const ITEM_VAZIO = { produtoId: '', quantidade: '', precoUnitario: '', custoUnitario: null };
 
@@ -15,6 +16,7 @@ export default function Vendas() {
   const [empresaId, setEmpresaId] = useState('');
   const [clienteId, setClienteId] = useState('');
   const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
+  const [comNota, setComNota] = useState(false);
   const [formaPagamento, setFormaPagamento] = useState('A_VISTA');
   const [vencimento, setVencimento] = useState('');
   const [itens, setItens] = useState([{ ...ITEM_VAZIO }]);
@@ -45,6 +47,7 @@ export default function Vendas() {
     setEmpresaId(empresas[0]?.id ? String(empresas[0].id) : '');
     setClienteId('');
     setData(new Date().toISOString().slice(0, 10));
+    setComNota(false);
     setFormaPagamento('A_VISTA');
     setVencimento('');
     setItens([{ ...ITEM_VAZIO }]);
@@ -58,6 +61,7 @@ export default function Vendas() {
     setEmpresaId(String(venda.empresaId));
     setClienteId(String(venda.clienteId));
     setData(new Date(venda.data).toISOString().slice(0, 10));
+    setComNota(venda.comNota);
     setFormaPagamento(venda.formaPagamento);
     const contaReceber = venda.contasReceber?.[0];
     setVencimento(
@@ -154,8 +158,11 @@ export default function Vendas() {
         empresaId: Number(empresaId),
         clienteId: Number(clienteId),
         data,
+        comNota,
         formaPagamento,
-        vencimento: formaPagamento !== 'A_VISTA' ? vencimento || undefined : undefined,
+        vencimento: !FORMAS_PAGAMENTO_IMEDIATAS.includes(formaPagamento)
+          ? vencimento || undefined
+          : undefined,
         itens: itens.map((i) => ({
           produtoId: Number(i.produtoId),
           quantidade: Number(i.quantidade),
@@ -214,6 +221,7 @@ export default function Vendas() {
             <th className="p-3">Data</th>
             <th className="p-3">Cliente</th>
             <th className="p-3">Forma Pagamento</th>
+            <th className="p-3">Nota Fiscal</th>
             <th className="p-3">Itens</th>
             <th className="p-3">Total</th>
             <th className="p-3">Lucro</th>
@@ -241,7 +249,8 @@ export default function Vendas() {
                 <td className="p-3">{v.empresa?.razaoSocial}</td>
                 <td className="p-3">{new Date(v.data).toLocaleDateString('pt-BR')}</td>
                 <td className="p-3">{v.cliente?.nome}</td>
-                <td className="p-3">{v.formaPagamento}</td>
+                <td className="p-3">{FORMA_PAGAMENTO_LABEL[v.formaPagamento]}</td>
+                <td className="p-3">{v.comNota ? 'Sim' : 'Não'}</td>
                 <td className="p-3">
                   {v.itens.map((i) => `${i.produto.nome} (${Number(i.quantidade)})`).join(', ')}
                 </td>
@@ -280,7 +289,7 @@ export default function Vendas() {
           })}
           {lista.length === 0 && (
             <tr>
-              <td colSpan={9} className="p-3 text-center text-gray-400">
+              <td colSpan={10} className="p-3 text-center text-gray-400">
                 Nenhuma venda registrada
               </td>
             </tr>
@@ -368,18 +377,25 @@ export default function Vendas() {
             required
           />
 
+          <label className="flex items-center gap-2 mb-4 text-sm">
+            <input type="checkbox" checked={comNota} onChange={(e) => setComNota(e.target.checked)} />
+            Venda com nota fiscal
+          </label>
+
           <label className="block text-sm mb-1">Forma de Pagamento</label>
           <select
             className="w-full border rounded px-3 py-2 mb-4"
             value={formaPagamento}
             onChange={(e) => setFormaPagamento(e.target.value)}
           >
-            <option value="A_VISTA">À Vista</option>
-            <option value="FIADO">Fiado</option>
-            <option value="BOLETO">Boleto</option>
+            {FORMA_PAGAMENTO_OPCOES.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
 
-          {formaPagamento !== 'A_VISTA' && (
+          {!FORMAS_PAGAMENTO_IMEDIATAS.includes(formaPagamento) && (
             <>
               <label className="block text-sm mb-1">Vencimento (opcional, padrão 30 dias)</label>
               <input

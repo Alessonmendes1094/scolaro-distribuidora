@@ -4,6 +4,8 @@ const prisma = require('../lib/prisma');
 const router = Router();
 
 const DIAS_VENCIMENTO_PADRAO = 30;
+const FORMAS_VALIDAS = ['FIADO', 'BOLETO', 'A_VISTA', 'PIX', 'DINHEIRO'];
+const FORMAS_IMEDIATAS = ['A_VISTA', 'PIX', 'DINHEIRO'];
 
 router.get('/', async (req, res) => {
   const { clienteId, empresaId, dataInicio, dataFim } = req.query;
@@ -66,9 +68,9 @@ router.get('/:id', async (req, res) => {
   res.json(venda);
 });
 
-// body: { empresaId, clienteId, data, formaPagamento, vencimento?, itens: [{ produtoId, quantidade, precoUnitario }] }
+// body: { empresaId, clienteId, data, comNota?, formaPagamento, vencimento?, itens: [{ produtoId, quantidade, precoUnitario }] }
 router.post('/', async (req, res) => {
-  const { empresaId, clienteId, data, formaPagamento, vencimento, itens } = req.body;
+  const { empresaId, clienteId, data, comNota, formaPagamento, vencimento, itens } = req.body;
 
   if (!empresaId || !clienteId || !data || !formaPagamento || !Array.isArray(itens) || itens.length === 0) {
     return res
@@ -76,8 +78,7 @@ router.post('/', async (req, res) => {
       .json({ error: 'Empresa, cliente, data, forma de pagamento e itens são obrigatórios' });
   }
 
-  const formasValidas = ['FIADO', 'BOLETO', 'A_VISTA'];
-  if (!formasValidas.includes(formaPagamento)) {
+  if (!FORMAS_VALIDAS.includes(formaPagamento)) {
     return res.status(400).json({ error: 'Forma de pagamento inválida' });
   }
 
@@ -115,6 +116,7 @@ router.post('/', async (req, res) => {
           empresaId: Number(empresaId),
           clienteId: Number(clienteId),
           data: new Date(data),
+          comNota: Boolean(comNota),
           formaPagamento,
           itens: {
             create: itens.map((item) => ({
@@ -135,7 +137,7 @@ router.post('/', async (req, res) => {
         });
       }
 
-      if (formaPagamento === 'A_VISTA') {
+      if (FORMAS_IMEDIATAS.includes(formaPagamento)) {
         await tx.movimentoCaixa.create({
           data: {
             tipo: 'ENTRADA',
@@ -172,7 +174,7 @@ router.post('/', async (req, res) => {
 // body: igual ao POST — substitui empresa/cliente/data/formaPagamento/vencimento/itens
 router.put('/:id', async (req, res) => {
   const vendaId = Number(req.params.id);
-  const { empresaId, clienteId, data, formaPagamento, vencimento, itens } = req.body;
+  const { empresaId, clienteId, data, comNota, formaPagamento, vencimento, itens } = req.body;
 
   if (!empresaId || !clienteId || !data || !formaPagamento || !Array.isArray(itens) || itens.length === 0) {
     return res
@@ -180,8 +182,7 @@ router.put('/:id', async (req, res) => {
       .json({ error: 'Empresa, cliente, data, forma de pagamento e itens são obrigatórios' });
   }
 
-  const formasValidas = ['FIADO', 'BOLETO', 'A_VISTA'];
-  if (!formasValidas.includes(formaPagamento)) {
+  if (!FORMAS_VALIDAS.includes(formaPagamento)) {
     return res.status(400).json({ error: 'Forma de pagamento inválida' });
   }
 
@@ -247,6 +248,7 @@ router.put('/:id', async (req, res) => {
           empresaId: Number(empresaId),
           clienteId: Number(clienteId),
           data: new Date(data),
+          comNota: Boolean(comNota),
           formaPagamento,
           itens: {
             create: itens.map((item) => ({
@@ -267,7 +269,7 @@ router.put('/:id', async (req, res) => {
         });
       }
 
-      if (formaPagamento === 'A_VISTA') {
+      if (FORMAS_IMEDIATAS.includes(formaPagamento)) {
         await tx.movimentoCaixa.create({
           data: {
             tipo: 'ENTRADA',

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import Modal from '../components/Modal.jsx';
 import CompraDetalheModal from '../components/CompraDetalheModal.jsx';
+import { FORMA_PAGAMENTO_LABEL, FORMA_PAGAMENTO_OPCOES, FORMAS_PAGAMENTO_IMEDIATAS } from '../lib/formaPagamento';
 
 const ITEM_VAZIO = { produtoId: '', quantidade: '', custoUnitario: '' };
 
@@ -98,7 +99,9 @@ export default function Compras() {
         data,
         comNota,
         formaPagamento,
-        vencimento: formaPagamento !== 'A_VISTA' ? vencimento || undefined : undefined,
+        vencimento: !FORMAS_PAGAMENTO_IMEDIATAS.includes(formaPagamento)
+          ? vencimento || undefined
+          : undefined,
         itens: itens.map((i) => ({
           produtoId: Number(i.produtoId),
           quantidade: Number(i.quantidade),
@@ -163,8 +166,8 @@ export default function Compras() {
                 <td className="p-3">{c.fornecedor?.nome}</td>
                 <td className="p-3">{c.comNota ? 'Sim' : 'Não'}</td>
                 <td className="p-3">
-                  {c.formaPagamento}
-                  {c.formaPagamento !== 'A_VISTA' && c.vencimento && (
+                  {FORMA_PAGAMENTO_LABEL[c.formaPagamento]}
+                  {!FORMAS_PAGAMENTO_IMEDIATAS.includes(c.formaPagamento) && c.vencimento && (
                     <div className="text-xs text-gray-500">
                       Venc.: {new Date(c.vencimento).toLocaleDateString('pt-BR')}
                     </div>
@@ -249,12 +252,14 @@ export default function Compras() {
             value={formaPagamento}
             onChange={(e) => setFormaPagamento(e.target.value)}
           >
-            <option value="BOLETO">Boleto</option>
-            <option value="FIADO">Fiado</option>
-            <option value="A_VISTA">À Vista</option>
+            {FORMA_PAGAMENTO_OPCOES.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
 
-          {formaPagamento !== 'A_VISTA' && (
+          {!FORMAS_PAGAMENTO_IMEDIATAS.includes(formaPagamento) && (
             <>
               <label className="block text-sm mb-1">Vencimento (opcional, padrão 30 dias)</label>
               <input

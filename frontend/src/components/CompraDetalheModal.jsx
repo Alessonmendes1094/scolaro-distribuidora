@@ -2,12 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import Modal from './Modal.jsx';
 import { STATUS_LABEL, STATUS_BADGE } from '../lib/status';
-
-const FORMA_PAGAMENTO_LABEL = {
-  FIADO: 'Fiado',
-  BOLETO: 'Boleto',
-  A_VISTA: 'À Vista',
-};
+import { FORMA_PAGAMENTO_LABEL } from '../lib/formaPagamento';
 
 export default function CompraDetalheModal({ compraId, onClose }) {
   const [compra, setCompra] = useState(null);

@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import api from '../lib/api';
 import { baixarPdf } from '../lib/pdf';
 import { STATUS_LABEL, STATUS_BADGE } from '../lib/status';
+import { FORMA_PAGAMENTO_LABEL } from '../lib/formaPagamento';
 
 function StatusPendenciaBadge({ status, diasAtraso }) {
   return (
@@ -84,7 +85,7 @@ export default function RelatorioImpressao() {
             grupo.clienteNome,
             `#${v.id}`,
             new Date(v.data).toLocaleDateString('pt-BR'),
-            v.formaPagamento,
+            FORMA_PAGAMENTO_LABEL[v.formaPagamento] || v.formaPagamento,
             v.quantidade,
             `R$ ${v.valorTotal.toFixed(2)}`,
             v.diasAtraso != null ? `${statusTexto} (${v.diasAtraso}d)` : statusTexto,
@@ -193,7 +194,7 @@ export default function RelatorioImpressao() {
                   <tr key={v.id} className="border-t border-gray-200">
                     <td className="py-1">#{v.id}</td>
                     <td className="py-1">{new Date(v.data).toLocaleDateString('pt-BR')}</td>
-                    <td className="py-1">{v.formaPagamento}</td>
+                    <td className="py-1">{FORMA_PAGAMENTO_LABEL[v.formaPagamento]}</td>
                     <td className="py-1">{v.quantidade}</td>
                     <td className="py-1">R$ {v.valorTotal.toFixed(2)}</td>
                     <td className="py-1 text-right">

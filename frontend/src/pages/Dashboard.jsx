@@ -1,5 +1,16 @@
 import { useEffect, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 import api from '../lib/api';
 
 function primeiroDiaMes() {
@@ -27,6 +38,19 @@ export default function Dashboard() {
   }, []);
 
   if (!dados) return <div>Carregando...</div>;
+
+  const comparativoNota = [
+    {
+      tipo: 'Com Nota',
+      Compras: dados.totalCompradoComNota,
+      Vendas: dados.totalVendidoComNota,
+    },
+    {
+      tipo: 'Sem Nota',
+      Compras: dados.totalComprado - dados.totalCompradoComNota,
+      Vendas: dados.totalVendido - dados.totalVendidoComNota,
+    },
+  ];
 
   return (
     <div>
@@ -118,7 +142,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="bg-white rounded shadow p-4">
+      <div className="bg-white rounded shadow p-4 mb-6">
         <div className="text-sm text-gray-500 mb-2">Vendas por Dia</div>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={dados.vendasPorDia}>
@@ -129,6 +153,36 @@ export default function Dashboard() {
             <Line type="monotone" dataKey="total" stroke="#0f172a" strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
+      </div>
+
+      <div className="bg-white rounded shadow p-4">
+        <div className="text-sm text-gray-500 mb-1">
+          Comparativo Compras x Vendas — Com Nota x Sem Nota
+        </div>
+        <div className="text-xs text-gray-400 mb-2">
+          Para apoio na apuração do que precisa ser declarado no período.
+        </div>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={comparativoNota}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="tipo" />
+            <YAxis />
+            <Tooltip formatter={(value) => `R$ ${Number(value).toFixed(2)}`} />
+            <Legend />
+            <Bar dataKey="Compras" fill="#dc2626" />
+            <Bar dataKey="Vendas" fill="#16a34a" />
+          </BarChart>
+        </ResponsiveContainer>
+        <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+          <div>
+            <div className="text-gray-500">Total Comprado com Nota</div>
+            <div className="font-semibold">R$ {dados.totalCompradoComNota.toFixed(2)}</div>
+          </div>
+          <div>
+            <div className="text-gray-500">Total Vendido com Nota</div>
+            <div className="font-semibold">R$ {dados.totalVendidoComNota.toFixed(2)}</div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -38,6 +38,14 @@ router.get('/', async (req, res) => {
     0
   );
 
+  const totalVendidoComNota = vendas
+    .filter((venda) => venda.comNota)
+    .reduce(
+      (acc, venda) =>
+        acc + venda.itens.reduce((s, i) => s + Number(i.quantidade) * Number(i.precoUnitario), 0),
+      0
+    );
+
   const lucroTotal = vendas.reduce(
     (acc, venda) =>
       acc +
@@ -59,6 +67,14 @@ router.get('/', async (req, res) => {
       acc + compra.itens.reduce((s, i) => s + Number(i.quantidade) * Number(i.custoUnitario), 0),
     0
   );
+
+  const totalCompradoComNota = compras
+    .filter((compra) => compra.comNota)
+    .reduce(
+      (acc, compra) =>
+        acc + compra.itens.reduce((s, i) => s + Number(i.quantidade) * Number(i.custoUnitario), 0),
+      0
+    );
 
   const vendasPorDiaMap = {};
   for (const venda of vendas) {
@@ -99,7 +115,9 @@ router.get('/', async (req, res) => {
   res.json({
     periodo: { dataInicio, dataFim },
     totalVendido,
+    totalVendidoComNota,
     totalComprado,
+    totalCompradoComNota,
     lucroTotal,
     vendasPorDia,
     contasReceber: {

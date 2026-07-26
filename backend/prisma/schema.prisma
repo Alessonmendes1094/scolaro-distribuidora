@@ -11,6 +11,8 @@ enum FormaPagamento {
   FIADO
   BOLETO
   A_VISTA
+  PIX
+  DINHEIRO
 }
 
 enum StatusConta {
@@ -127,6 +129,7 @@ model Venda {
   cliente        Cliente         @relation(fields: [clienteId], references: [id])
   clienteId      Int
   data           DateTime
+  comNota        Boolean         @default(false)
   formaPagamento FormaPagamento
   itens          ItemVenda[]
   contasReceber  ContaReceber[]
