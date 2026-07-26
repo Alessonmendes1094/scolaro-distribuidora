@@ -5,6 +5,7 @@ const cors = require('cors');
 const authMiddleware = require('./middleware/auth');
 
 const authRoutes = require('./routes/auth.routes');
+const empresasRoutes = require('./routes/empresas.routes');
 const fornecedoresRoutes = require('./routes/fornecedores.routes');
 const produtosRoutes = require('./routes/produtos.routes');
 const clientesRoutes = require('./routes/clientes.routes');
@@ -25,6 +26,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.use('/auth', authRoutes);
 
+app.use('/empresas', authMiddleware, empresasRoutes);
 app.use('/fornecedores', authMiddleware, fornecedoresRoutes);
 app.use('/produtos', authMiddleware, produtosRoutes);
 app.use('/clientes', authMiddleware, clientesRoutes);

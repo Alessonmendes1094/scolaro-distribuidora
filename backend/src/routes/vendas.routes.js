@@ -6,10 +6,11 @@ const router = Router();
 const DIAS_VENCIMENTO_PADRAO = 30;
 
 router.get('/', async (req, res) => {
-  const { clienteId, dataInicio, dataFim } = req.query;
+  const { clienteId, empresaId, dataInicio, dataFim } = req.query;
 
   const where = {};
   if (clienteId) where.clienteId = Number(clienteId);
+  if (empresaId) where.empresaId = Number(empresaId);
   if (dataInicio || dataFim) {
     where.data = {};
     if (dataInicio) where.data.gte = new Date(dataInicio);
@@ -18,7 +19,12 @@ router.get('/', async (req, res) => {
 
   const vendas = await prisma.venda.findMany({
     where,
-    include: { cliente: true, itens: { include: { produto: true } }, contasReceber: true },
+    include: {
+      empresa: true,
+      cliente: true,
+      itens: { include: { produto: true } },
+      contasReceber: true,
+    },
     orderBy: { data: 'desc' },
   });
 
@@ -49,18 +55,25 @@ router.get('/ultima-por-cliente/:clienteId', async (req, res) => {
 router.get('/:id', async (req, res) => {
   const venda = await prisma.venda.findUnique({
     where: { id: Number(req.params.id) },
-    include: { cliente: true, itens: { include: { produto: true } }, contasReceber: true },
+    include: {
+      empresa: true,
+      cliente: true,
+      itens: { include: { produto: true } },
+      contasReceber: true,
+    },
   });
   if (!venda) return res.status(404).json({ error: 'Venda não encontrada' });
   res.json(venda);
 });
 
-// body: { clienteId, data, formaPagamento, vencimento?, itens: [{ produtoId, quantidade, precoUnitario }] }
+// body: { empresaId, clienteId, data, formaPagamento, vencimento?, itens: [{ produtoId, quantidade, precoUnitario }] }
 router.post('/', async (req, res) => {
-  const { clienteId, data, formaPagamento, vencimento, itens } = req.body;
+  const { empresaId, clienteId, data, formaPagamento, vencimento, itens } = req.body;
 
-  if (!clienteId || !data || !formaPagamento || !Array.isArray(itens) || itens.length === 0) {
-    return res.status(400).json({ error: 'Cliente, data, forma de pagamento e itens são obrigatórios' });
+  if (!empresaId || !clienteId || !data || !formaPagamento || !Array.isArray(itens) || itens.length === 0) {
+    return res
+      .status(400)
+      .json({ error: 'Empresa, cliente, data, forma de pagamento e itens são obrigatórios' });
   }
 
   const formasValidas = ['FIADO', 'BOLETO', 'A_VISTA'];
@@ -99,6 +112,7 @@ router.post('/', async (req, res) => {
     const venda = await prisma.$transaction(async (tx) => {
       const novaVenda = await tx.venda.create({
         data: {
+          empresaId: Number(empresaId),
           clienteId: Number(clienteId),
           data: new Date(data),
           formaPagamento,

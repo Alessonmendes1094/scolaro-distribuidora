@@ -10,14 +10,19 @@ function primeiroDiaMes() {
 export default function Dashboard() {
   const [dataInicio, setDataInicio] = useState(primeiroDiaMes());
   const [dataFim, setDataFim] = useState(() => new Date().toISOString().slice(0, 10));
+  const [empresaId, setEmpresaId] = useState('');
+  const [empresas, setEmpresas] = useState([]);
   const [dados, setDados] = useState(null);
 
   async function carregar() {
-    const { data } = await api.get('/dashboard', { params: { dataInicio, dataFim } });
+    const { data } = await api.get('/dashboard', {
+      params: { dataInicio, dataFim, empresaId: empresaId || undefined },
+    });
     setDados(data);
   }
 
   useEffect(() => {
+    api.get('/empresas').then((res) => setEmpresas(res.data));
     carregar();
   }, []);
 
@@ -45,6 +50,21 @@ export default function Dashboard() {
             value={dataFim}
             onChange={(e) => setDataFim(e.target.value)}
           />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Empresa</label>
+          <select
+            className="border rounded px-3 py-2"
+            value={empresaId}
+            onChange={(e) => setEmpresaId(e.target.value)}
+          >
+            <option value="">Todas as empresas</option>
+            {empresas.map((emp) => (
+              <option key={emp.id} value={emp.id}>
+                {emp.razaoSocial}
+              </option>
+            ))}
+          </select>
         </div>
         <button
           onClick={carregar}

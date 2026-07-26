@@ -46,6 +46,15 @@ model Usuario {
   createdAt DateTime @default(now())
 }
 
+model Empresa {
+  id        Int      @id @default(autoincrement())
+  cnpj      String   @unique
+  razaoSocial String
+  telefone  String?
+  createdAt DateTime @default(now())
+  vendas    Venda[]
+}
+
 model Fornecedor {
   id        Int       @id @default(autoincrement())
   nome      String
@@ -101,6 +110,8 @@ model ItemCompra {
 
 model Venda {
   id             Int             @id @default(autoincrement())
+  empresa        Empresa         @relation(fields: [empresaId], references: [id])
+  empresaId      Int
   cliente        Cliente         @relation(fields: [clienteId], references: [id])
   clienteId      Int
   data           DateTime

@@ -8,7 +8,10 @@ export default function Vendas() {
   const [lista, setLista] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [produtos, setProdutos] = useState([]);
+  const [empresas, setEmpresas] = useState([]);
+  const [empresaFiltro, setEmpresaFiltro] = useState('');
   const [modalAberto, setModalAberto] = useState(false);
+  const [empresaId, setEmpresaId] = useState('');
   const [clienteId, setClienteId] = useState('');
   const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
   const [formaPagamento, setFormaPagamento] = useState('A_VISTA');
@@ -18,21 +21,24 @@ export default function Vendas() {
   const [ultimaVenda, setUltimaVenda] = useState(null);
 
   async function carregar() {
-    const [vendasRes, clientesRes, produtosRes] = await Promise.all([
-      api.get('/vendas'),
+    const [vendasRes, clientesRes, produtosRes, empresasRes] = await Promise.all([
+      api.get('/vendas', { params: empresaFiltro ? { empresaId: empresaFiltro } : {} }),
       api.get('/clientes'),
       api.get('/produtos'),
+      api.get('/empresas'),
     ]);
     setLista(vendasRes.data);
     setClientes(clientesRes.data);
     setProdutos(produtosRes.data);
+    setEmpresas(empresasRes.data);
   }
 
   useEffect(() => {
     carregar();
-  }, []);
+  }, [empresaFiltro]);
 
   function abrirNovo() {
+    setEmpresaId(empresas[0]?.id ? String(empresas[0].id) : '');
     setClienteId('');
     setData(new Date().toISOString().slice(0, 10));
     setFormaPagamento('A_VISTA');
@@ -108,6 +114,7 @@ export default function Vendas() {
     setErro('');
     try {
       const { data: vendaCriada } = await api.post('/vendas', {
+        empresaId: Number(empresaId),
         clienteId: Number(clienteId),
         data,
         formaPagamento,
@@ -138,10 +145,27 @@ export default function Vendas() {
         </button>
       </div>
 
+      <div className="mb-4">
+        <label className="block text-sm mb-1">Filtrar por Empresa</label>
+        <select
+          className="border rounded px-3 py-2 text-sm"
+          value={empresaFiltro}
+          onChange={(e) => setEmpresaFiltro(e.target.value)}
+        >
+          <option value="">Todas as empresas</option>
+          {empresas.map((emp) => (
+            <option key={emp.id} value={emp.id}>
+              {emp.razaoSocial}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <table className="w-full bg-white rounded shadow overflow-hidden">
         <thead className="bg-slate-100 text-left text-sm">
           <tr>
             <th className="p-3">ID</th>
+            <th className="p-3">Empresa</th>
             <th className="p-3">Data</th>
             <th className="p-3">Cliente</th>
             <th className="p-3">Forma Pagamento</th>
@@ -161,6 +185,7 @@ export default function Vendas() {
             return (
               <tr key={v.id} className="border-t">
                 <td className="p-3">#{v.id}</td>
+                <td className="p-3">{v.empresa?.razaoSocial}</td>
                 <td className="p-3">{new Date(v.data).toLocaleDateString('pt-BR')}</td>
                 <td className="p-3">{v.cliente?.nome}</td>
                 <td className="p-3">{v.formaPagamento}</td>
@@ -184,7 +209,7 @@ export default function Vendas() {
           })}
           {lista.length === 0 && (
             <tr>
-              <td colSpan={8} className="p-3 text-center text-gray-400">
+              <td colSpan={9} className="p-3 text-center text-gray-400">
                 Nenhuma venda registrada
               </td>
             </tr>
@@ -195,6 +220,22 @@ export default function Vendas() {
       <Modal open={modalAberto} title="Nova Venda" onClose={() => setModalAberto(false)}>
         <form onSubmit={salvar}>
           {erro && <div className="mb-3 text-sm text-red-600">{erro}</div>}
+
+          <label className="block text-sm mb-1">Empresa (venda feita por)</label>
+          <select
+            className="w-full border rounded px-3 py-2 mb-4"
+            value={empresaId}
+            onChange={(e) => setEmpresaId(e.target.value)}
+            required
+          >
+            <option value="">Selecione...</option>
+            {empresas.map((emp) => (
+              <option key={emp.id} value={emp.id}>
+                {emp.razaoSocial}
+              </option>
+            ))}
+          </select>
+
           <label className="block text-sm mb-1">Cliente</label>
           <select
             className="w-full border rounded px-3 py-2 mb-2"

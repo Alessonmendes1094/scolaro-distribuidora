@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import { baixarCsv } from '../lib/csv';
 
@@ -12,12 +12,19 @@ export default function Relatorios() {
   const [aba, setAba] = useState(ABAS[0].id);
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
+  const [empresaId, setEmpresaId] = useState('');
+  const [empresas, setEmpresas] = useState([]);
   const [resultado, setResultado] = useState([]);
+
+  useEffect(() => {
+    api.get('/empresas').then((res) => setEmpresas(res.data));
+  }, []);
 
   async function gerar() {
     const params = {};
     if (dataInicio) params.dataInicio = dataInicio;
     if (dataFim) params.dataFim = dataFim;
+    if (empresaId) params.empresaId = empresaId;
     const { data } = await api.get(`/relatorios/${aba}`, { params });
     setResultado(data);
   }
@@ -90,6 +97,21 @@ export default function Relatorios() {
             value={dataInicio}
             onChange={(e) => setDataInicio(e.target.value)}
           />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Empresa</label>
+          <select
+            className="border rounded px-3 py-2"
+            value={empresaId}
+            onChange={(e) => setEmpresaId(e.target.value)}
+          >
+            <option value="">Todas as empresas</option>
+            {empresas.map((emp) => (
+              <option key={emp.id} value={emp.id}>
+                {emp.razaoSocial}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-sm mb-1">Data Fim</label>

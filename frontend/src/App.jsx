@@ -3,6 +3,7 @@ import { useAuth } from './context/AuthContext.jsx';
 import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import Empresas from './pages/Empresas.jsx';
 import Fornecedores from './pages/Fornecedores.jsx';
 import Produtos from './pages/Produtos.jsx';
 import Clientes from './pages/Clientes.jsx';
@@ -41,6 +42,7 @@ export default function App() {
         }
       >
         <Route index element={<Dashboard />} />
+        <Route path="empresas" element={<Empresas />} />
         <Route path="fornecedores" element={<Fornecedores />} />
         <Route path="produtos" element={<Produtos />} />
         <Route path="clientes" element={<Clientes />} />

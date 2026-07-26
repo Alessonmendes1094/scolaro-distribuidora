@@ -13,6 +13,7 @@ function parsePeriodo(query) {
 
 router.get('/', async (req, res) => {
   const { dataInicio, dataFim } = parsePeriodo(req.query);
+  const { empresaId } = req.query;
 
   await prisma.contaReceber.updateMany({
     where: { status: 'PENDENTE', vencimento: { lt: new Date() } },
@@ -24,7 +25,10 @@ router.get('/', async (req, res) => {
   });
 
   const vendas = await prisma.venda.findMany({
-    where: { data: { gte: dataInicio, lte: dataFim } },
+    where: {
+      data: { gte: dataInicio, lte: dataFim },
+      ...(empresaId ? { empresaId: Number(empresaId) } : {}),
+    },
     include: { itens: true },
   });
 
@@ -59,7 +63,10 @@ router.get('/', async (req, res) => {
     .sort((a, b) => a.data.localeCompare(b.data));
 
   const contasReceberPendentes = await prisma.contaReceber.findMany({
-    where: { status: { in: ['PENDENTE', 'ATRASADO'] } },
+    where: {
+      status: { in: ['PENDENTE', 'ATRASADO'] },
+      ...(empresaId ? { venda: { empresaId: Number(empresaId) } } : {}),
+    },
   });
   const totalReceberPendente = contasReceberPendentes
     .filter((c) => c.status === 'PENDENTE')

@@ -48,7 +48,8 @@ export default function Recibo() {
       <div className="flex items-center gap-4 border-b-2 border-black pb-4 mb-4">
         <img src="/logo-scolaro.png" alt="Scolaro Distribuidora" className="h-20 w-auto" />
         <div>
-          <h1 className="text-xl font-bold">Scolaro Distribuidora de Frios LTDA</h1>
+          <h1 className="text-xl font-bold">{venda.empresa.razaoSocial}</h1>
+          <p className="text-gray-600">CNPJ: {venda.empresa.cnpj}</p>
           <p className="text-gray-600">Comprovante de Venda #{venda.id}</p>
         </div>
       </div>

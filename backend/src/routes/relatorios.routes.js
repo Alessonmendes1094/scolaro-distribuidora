@@ -12,10 +12,14 @@ function periodoWhere(query, field = 'data') {
   return { [field]: range };
 }
 
+function empresaWhere(query) {
+  return query.empresaId ? { empresaId: Number(query.empresaId) } : {};
+}
+
 // Vendas por cliente no período
 router.get('/vendas-por-cliente', async (req, res) => {
   const vendas = await prisma.venda.findMany({
-    where: periodoWhere(req.query),
+    where: { ...periodoWhere(req.query), ...empresaWhere(req.query) },
     include: { cliente: true, itens: true },
     orderBy: { data: 'desc' },
   });
@@ -54,7 +58,11 @@ router.get('/vendas-por-cliente', async (req, res) => {
 // Pagamentos recebidos por cliente no período
 router.get('/pagamentos-recebidos', async (req, res) => {
   const contas = await prisma.contaReceber.findMany({
-    where: { status: 'PAGO', ...periodoWhere(req.query, 'pagoEm') },
+    where: {
+      status: 'PAGO',
+      ...periodoWhere(req.query, 'pagoEm'),
+      ...(req.query.empresaId ? { venda: { empresaId: Number(req.query.empresaId) } } : {}),
+    },
     include: { venda: { include: { cliente: true } } },
     orderBy: { pagoEm: 'desc' },
   });
@@ -90,7 +98,11 @@ router.get('/pagamentos-pendentes', async (req, res) => {
   });
 
   const contas = await prisma.contaReceber.findMany({
-    where: { status: { in: ['PENDENTE', 'ATRASADO'] }, ...periodoWhere(req.query, 'vencimento') },
+    where: {
+      status: { in: ['PENDENTE', 'ATRASADO'] },
+      ...periodoWhere(req.query, 'vencimento'),
+      ...(req.query.empresaId ? { venda: { empresaId: Number(req.query.empresaId) } } : {}),
+    },
     include: { venda: { include: { cliente: true } } },
     orderBy: { vencimento: 'asc' },
   });
