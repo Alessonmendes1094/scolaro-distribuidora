@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import Modal from '../components/Modal.jsx';
+import CompraDetalheModal from '../components/CompraDetalheModal.jsx';
 import { STATUS_LABEL } from '../lib/status';
 
 const FORM_INICIAL = { descricao: '', categoria: 'OUTROS', valor: '', vencimento: '' };
@@ -18,6 +19,7 @@ export default function ContasPagar() {
   const [modalPagarAberto, setModalPagarAberto] = useState(false);
   const [contaPagando, setContaPagando] = useState(null);
   const [dataPagamento, setDataPagamento] = useState('');
+  const [compraDetalheId, setCompraDetalheId] = useState(null);
 
   async function carregar() {
     const { data } = await api.get('/contas-pagar');
@@ -79,6 +81,7 @@ export default function ContasPagar() {
         <thead className="bg-slate-100 text-left text-sm">
           <tr>
             <th className="p-3">Descrição</th>
+            <th className="p-3">Compra</th>
             <th className="p-3">Categoria</th>
             <th className="p-3">Valor</th>
             <th className="p-3">Vencimento</th>
@@ -90,6 +93,18 @@ export default function ContasPagar() {
           {lista.map((c) => (
             <tr key={c.id} className="border-t">
               <td className="p-3">{c.descricao}</td>
+              <td className="p-3">
+                {c.compraId ? (
+                  <button
+                    onClick={() => setCompraDetalheId(c.compraId)}
+                    className="text-blue-600 hover:underline"
+                  >
+                    #{c.compraId}
+                  </button>
+                ) : (
+                  '-'
+                )}
+              </td>
               <td className="p-3">{c.categoria}</td>
               <td className="p-3">R$ {Number(c.valor).toFixed(2)}</td>
               <td className="p-3">{new Date(c.vencimento).toLocaleDateString('pt-BR')}</td>
@@ -119,7 +134,7 @@ export default function ContasPagar() {
           ))}
           {lista.length === 0 && (
             <tr>
-              <td colSpan={6} className="p-3 text-center text-gray-400">
+              <td colSpan={7} className="p-3 text-center text-gray-400">
                 Nenhuma conta a pagar cadastrada
               </td>
             </tr>
@@ -201,6 +216,8 @@ export default function ContasPagar() {
           </button>
         </form>
       </Modal>
+
+      <CompraDetalheModal compraId={compraDetalheId} onClose={() => setCompraDetalheId(null)} />
     </div>
   );
 }

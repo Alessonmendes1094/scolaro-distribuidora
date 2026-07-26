@@ -14,6 +14,7 @@ import ContasReceber from './pages/ContasReceber.jsx';
 import Caixa from './pages/Caixa.jsx';
 import Relatorios from './pages/Relatorios.jsx';
 import Recibo from './pages/Recibo.jsx';
+import ReciboCompra from './pages/ReciboCompra.jsx';
 import ReciboPagamento from './pages/ReciboPagamento.jsx';
 import RelatorioImpressao from './pages/RelatorioImpressao.jsx';
 
@@ -32,6 +33,14 @@ export default function App() {
         element={
           <RotaPrivada>
             <Recibo />
+          </RotaPrivada>
+        }
+      />
+      <Route
+        path="/recibo-compra/:compraId"
+        element={
+          <RotaPrivada>
+            <ReciboCompra />
           </RotaPrivada>
         }
       />

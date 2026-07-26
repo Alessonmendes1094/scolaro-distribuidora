@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import api from '../lib/api';
 import { STATUS_LABEL } from '../lib/status';
+import VendaDetalheModal from '../components/VendaDetalheModal.jsx';
 
 const badge = {
   PENDENTE: 'bg-yellow-100 text-yellow-800',
@@ -18,6 +19,7 @@ export default function ContasReceber() {
   const [valorBaixa, setValorBaixa] = useState('');
   const [dataRecebimento, setDataRecebimento] = useState(() => new Date().toISOString().slice(0, 10));
   const [erro, setErro] = useState('');
+  const [vendaDetalheId, setVendaDetalheId] = useState(null);
 
   async function carregar() {
     const params = {};
@@ -199,7 +201,14 @@ export default function ContasReceber() {
                 )}
               </td>
               <td className="p-3">{c.venda?.cliente?.nome}</td>
-              <td className="p-3">#{c.vendaId}</td>
+              <td className="p-3">
+                <button
+                  onClick={() => setVendaDetalheId(c.vendaId)}
+                  className="text-blue-600 hover:underline"
+                >
+                  #{c.vendaId}
+                </button>
+              </td>
               <td className="p-3">R$ {Number(c.valor).toFixed(2)}</td>
               <td className="p-3">{new Date(c.vencimento).toLocaleDateString('pt-BR')}</td>
               <td className="p-3">
@@ -253,6 +262,8 @@ export default function ContasReceber() {
       {pendentesSelecionaveis.length === 0 && lista.length > 0 && (
         <div className="text-xs text-gray-400 mt-2">Todas as pendências deste filtro já foram pagas.</div>
       )}
+
+      <VendaDetalheModal vendaId={vendaDetalheId} onClose={() => setVendaDetalheId(null)} />
     </div>
   );
 }

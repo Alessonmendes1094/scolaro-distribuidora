@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import Modal from '../components/Modal.jsx';
+import VendaDetalheModal from '../components/VendaDetalheModal.jsx';
 
 const ITEM_VAZIO = { produtoId: '', quantidade: '', precoUnitario: '', custoUnitario: null };
 
@@ -20,6 +21,7 @@ export default function Vendas() {
   const [erro, setErro] = useState('');
   const [ultimaVenda, setUltimaVenda] = useState(null);
   const [editandoId, setEditandoId] = useState(null);
+  const [vendaDetalheId, setVendaDetalheId] = useState(null);
 
   async function carregar() {
     const [vendasRes, clientesRes, produtosRes, empresasRes] = await Promise.all([
@@ -228,7 +230,14 @@ export default function Vendas() {
             const contaPaga = v.contasReceber?.some((cr) => cr.status === 'PAGO');
             return (
               <tr key={v.id} className="border-t">
-                <td className="p-3">#{v.id}</td>
+                <td className="p-3">
+                  <button
+                    onClick={() => setVendaDetalheId(v.id)}
+                    className="text-blue-600 hover:underline"
+                  >
+                    #{v.id}
+                  </button>
+                </td>
                 <td className="p-3">{v.empresa?.razaoSocial}</td>
                 <td className="p-3">{new Date(v.data).toLocaleDateString('pt-BR')}</td>
                 <td className="p-3">{v.cliente?.nome}</td>
@@ -468,6 +477,8 @@ export default function Vendas() {
           </button>
         </form>
       </Modal>
+
+      <VendaDetalheModal vendaId={vendaDetalheId} onClose={() => setVendaDetalheId(null)} />
     </div>
   );
 }

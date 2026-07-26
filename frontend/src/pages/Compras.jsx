@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import Modal from '../components/Modal.jsx';
+import CompraDetalheModal from '../components/CompraDetalheModal.jsx';
 
 const ITEM_VAZIO = { produtoId: '', quantidade: '', custoUnitario: '' };
 
@@ -17,6 +18,7 @@ export default function Compras() {
   const [itens, setItens] = useState([{ ...ITEM_VAZIO }]);
   const [erro, setErro] = useState('');
   const [editandoId, setEditandoId] = useState(null);
+  const [compraDetalheId, setCompraDetalheId] = useState(null);
 
   async function carregar() {
     const [comprasRes, fornecedoresRes, produtosRes] = await Promise.all([
@@ -130,6 +132,7 @@ export default function Compras() {
       <table className="w-full bg-white rounded shadow overflow-hidden">
         <thead className="bg-slate-100 text-left text-sm">
           <tr>
+            <th className="p-3">ID</th>
             <th className="p-3">Data</th>
             <th className="p-3">Fornecedor</th>
             <th className="p-3">Nota Fiscal</th>
@@ -148,6 +151,14 @@ export default function Compras() {
             const contaPaga = c.contasPagar?.some((cp) => cp.status === 'PAGO');
             return (
               <tr key={c.id} className="border-t">
+                <td className="p-3">
+                  <button
+                    onClick={() => setCompraDetalheId(c.id)}
+                    className="text-blue-600 hover:underline"
+                  >
+                    #{c.id}
+                  </button>
+                </td>
                 <td className="p-3">{new Date(c.data).toLocaleDateString('pt-BR')}</td>
                 <td className="p-3">{c.fornecedor?.nome}</td>
                 <td className="p-3">{c.comNota ? 'Sim' : 'Não'}</td>
@@ -188,7 +199,7 @@ export default function Compras() {
           })}
           {lista.length === 0 && (
             <tr>
-              <td colSpan={7} className="p-3 text-center text-gray-400">
+              <td colSpan={8} className="p-3 text-center text-gray-400">
                 Nenhuma compra registrada
               </td>
             </tr>
@@ -314,6 +325,8 @@ export default function Compras() {
           </button>
         </form>
       </Modal>
+
+      <CompraDetalheModal compraId={compraDetalheId} onClose={() => setCompraDetalheId(null)} />
     </div>
   );
 }

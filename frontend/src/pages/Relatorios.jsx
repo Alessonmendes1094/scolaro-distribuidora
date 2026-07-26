@@ -3,6 +3,7 @@ import api from '../lib/api';
 import { baixarCsv } from '../lib/csv';
 import { baixarPdf } from '../lib/pdf';
 import { STATUS_LABEL, STATUS_BADGE } from '../lib/status';
+import VendaDetalheModal from '../components/VendaDetalheModal.jsx';
 
 const ABAS = [
   { id: 'vendas-por-cliente', label: 'Vendas por Cliente' },
@@ -37,6 +38,7 @@ export default function Relatorios() {
   const [clientes, setClientes] = useState([]);
   const [status, setStatus] = useState('');
   const [resultado, setResultado] = useState([]);
+  const [vendaDetalheId, setVendaDetalheId] = useState(null);
 
   useEffect(() => {
     api.get('/empresas').then((res) => setEmpresas(res.data));
@@ -342,7 +344,14 @@ export default function Relatorios() {
                 <tbody>
                   {grupo.vendas.map((v) => (
                     <tr key={v.id} className="border-t">
-                      <td className="py-1">#{v.id}</td>
+                      <td className="py-1">
+                        <button
+                          onClick={() => setVendaDetalheId(v.id)}
+                          className="text-blue-600 hover:underline"
+                        >
+                          #{v.id}
+                        </button>
+                      </td>
                       <td className="py-1">{new Date(v.data).toLocaleDateString('pt-BR')}</td>
                       <td className="py-1">{v.formaPagamento}</td>
                       <td className="py-1">{v.quantidade}</td>
@@ -372,7 +381,14 @@ export default function Relatorios() {
                 <tbody>
                   {grupo.pagamentos.map((p) => (
                     <tr key={p.contaId} className="border-t">
-                      <td className="py-1">#{p.vendaId}</td>
+                      <td className="py-1">
+                        <button
+                          onClick={() => setVendaDetalheId(p.vendaId)}
+                          className="text-blue-600 hover:underline"
+                        >
+                          #{p.vendaId}
+                        </button>
+                      </td>
                       <td className="py-1">{new Date(p.dataVenda).toLocaleDateString('pt-BR')}</td>
                       <td className="py-1">R$ {p.valorVenda.toFixed(2)}</td>
                       <td className="py-1">R$ {p.valor.toFixed(2)}</td>
@@ -409,7 +425,14 @@ export default function Relatorios() {
                 <tbody>
                   {grupo.pendencias.map((p) => (
                     <tr key={p.contaId} className="border-t">
-                      <td className="py-1">#{p.vendaId}</td>
+                      <td className="py-1">
+                        <button
+                          onClick={() => setVendaDetalheId(p.vendaId)}
+                          className="text-blue-600 hover:underline"
+                        >
+                          #{p.vendaId}
+                        </button>
+                      </td>
                       <td className="py-1">{new Date(p.dataVenda).toLocaleDateString('pt-BR')}</td>
                       <td className="py-1">R$ {p.valorVenda.toFixed(2)}</td>
                       <td className="py-1">R$ {p.valor.toFixed(2)}</td>
@@ -428,6 +451,8 @@ export default function Relatorios() {
           <div className="text-center text-gray-400 py-8">Nenhum dado gerado ainda</div>
         )}
       </div>
+
+      <VendaDetalheModal vendaId={vendaDetalheId} onClose={() => setVendaDetalheId(null)} />
     </div>
   );
 }
