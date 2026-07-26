@@ -20,11 +20,19 @@ function clienteWhere(query) {
   return query.clienteId ? { clienteId: Number(query.clienteId) } : {};
 }
 
+function statusPendenciaVenda(venda) {
+  if (venda.formaPagamento === 'A_VISTA') return 'PAGO';
+  if (!venda.contasReceber || venda.contasReceber.length === 0) return 'PAGO';
+  if (venda.contasReceber.some((c) => c.status === 'ATRASADO')) return 'ATRASADO';
+  if (venda.contasReceber.every((c) => c.status === 'PAGO')) return 'PAGO';
+  return 'PENDENTE';
+}
+
 // Vendas por cliente no período
 router.get('/vendas-por-cliente', async (req, res) => {
   const vendas = await prisma.venda.findMany({
     where: { ...periodoWhere(req.query), ...empresaWhere(req.query), ...clienteWhere(req.query) },
-    include: { cliente: true, itens: true },
+    include: { cliente: true, itens: true, contasReceber: true },
     orderBy: { data: 'desc' },
   });
 
@@ -51,6 +59,7 @@ router.get('/vendas-por-cliente', async (req, res) => {
       formaPagamento: venda.formaPagamento,
       quantidade: qtdItens,
       valorTotal: totalVenda,
+      statusPendencia: statusPendenciaVenda(venda),
     });
     porCliente[venda.clienteId].quantidadeTotal += qtdItens;
     porCliente[venda.clienteId].valorTotal += totalVenda;
@@ -70,13 +79,17 @@ router.get('/pagamentos-recebidos', async (req, res) => {
         ...clienteWhere(req.query),
       },
     },
-    include: { venda: { include: { cliente: true } }, baixa: true },
+    include: { venda: { include: { cliente: true, itens: true } }, baixa: true },
     orderBy: { pagoEm: 'desc' },
   });
 
   const porCliente = {};
   for (const conta of contas) {
     const clienteId = conta.venda.clienteId;
+    const valorVenda = conta.venda.itens.reduce(
+      (s, i) => s + Number(i.quantidade) * Number(i.precoUnitario),
+      0
+    );
     if (!porCliente[clienteId]) {
       porCliente[clienteId] = {
         clienteId,
@@ -88,6 +101,8 @@ router.get('/pagamentos-recebidos', async (req, res) => {
     porCliente[clienteId].pagamentos.push({
       contaId: conta.id,
       vendaId: conta.vendaId,
+      dataVenda: conta.venda.data,
+      valorVenda,
       valor: Number(conta.valor),
       pagoEm: conta.pagoEm,
       baixaId: conta.baixaId,
@@ -115,13 +130,17 @@ router.get('/pagamentos-pendentes', async (req, res) => {
         ...clienteWhere(req.query),
       },
     },
-    include: { venda: { include: { cliente: true } } },
+    include: { venda: { include: { cliente: true, itens: true } } },
     orderBy: { vencimento: 'asc' },
   });
 
   const porCliente = {};
   for (const conta of contas) {
     const clienteId = conta.venda.clienteId;
+    const valorVenda = conta.venda.itens.reduce(
+      (s, i) => s + Number(i.quantidade) * Number(i.precoUnitario),
+      0
+    );
     if (!porCliente[clienteId]) {
       porCliente[clienteId] = {
         clienteId,
@@ -133,6 +152,8 @@ router.get('/pagamentos-pendentes', async (req, res) => {
     porCliente[clienteId].pendencias.push({
       contaId: conta.id,
       vendaId: conta.vendaId,
+      dataVenda: conta.venda.data,
+      valorVenda,
       valor: Number(conta.valor),
       vencimento: conta.vencimento,
       status: conta.status,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import { baixarCsv } from '../lib/csv';
+import { baixarPdf } from '../lib/pdf';
 import { STATUS_LABEL } from '../lib/status';
 
 const ABAS = [
@@ -8,6 +9,12 @@ const ABAS = [
   { id: 'pagamentos-recebidos', label: 'Pagamentos Recebidos' },
   { id: 'pagamentos-pendentes', label: 'Pagamentos Pendentes' },
 ];
+
+const TITULOS = {
+  'vendas-por-cliente': 'Relatório de Vendas por Cliente',
+  'pagamentos-recebidos': 'Relatório de Pagamentos Recebidos',
+  'pagamentos-pendentes': 'Relatório de Pagamentos Pendentes',
+};
 
 export default function Relatorios() {
   const [aba, setAba] = useState(ABAS[0].id);
@@ -57,6 +64,7 @@ export default function Relatorios() {
             formaPagamento: v.formaPagamento,
             quantidade: v.quantidade,
             valorTotal: v.valorTotal.toFixed(2),
+            statusPendencia: STATUS_LABEL[v.statusPendencia] || v.statusPendencia,
           });
         }
       } else if (aba === 'pagamentos-recebidos') {
@@ -64,8 +72,11 @@ export default function Relatorios() {
           linhas.push({
             cliente: grupo.clienteNome,
             vendaId: p.vendaId,
-            valor: p.valor.toFixed(2),
+            dataVenda: new Date(p.dataVenda).toLocaleDateString('pt-BR'),
+            valorVenda: p.valorVenda.toFixed(2),
+            valorPendencia: p.valor.toFixed(2),
             pagoEm: new Date(p.pagoEm).toLocaleDateString('pt-BR'),
+            codigoBaixa: p.codigoBaixa || '',
           });
         }
       } else {
@@ -73,14 +84,87 @@ export default function Relatorios() {
           linhas.push({
             cliente: grupo.clienteNome,
             vendaId: p.vendaId,
-            valor: p.valor.toFixed(2),
+            dataVenda: new Date(p.dataVenda).toLocaleDateString('pt-BR'),
+            valorVenda: p.valorVenda.toFixed(2),
+            valorPendencia: p.valor.toFixed(2),
             vencimento: new Date(p.vencimento).toLocaleDateString('pt-BR'),
-            status: p.status,
+            status: STATUS_LABEL[p.status] || p.status,
           });
         }
       }
     }
     baixarCsv(`${aba}.csv`, linhas);
+  }
+
+  function exportarPdf() {
+    const clienteNome = clientes.find((c) => String(c.id) === String(clienteId))?.nome;
+    const subtitulos = [];
+    if (clienteNome) subtitulos.push(`Cliente: ${clienteNome}`);
+    if (dataInicio || dataFim) {
+      subtitulos.push(
+        `Período: ${dataInicio ? new Date(dataInicio).toLocaleDateString('pt-BR') : '...'} até ${
+          dataFim ? new Date(dataFim).toLocaleDateString('pt-BR') : '...'
+        }`
+      );
+    }
+
+    let colunas = [];
+    const linhas = [];
+
+    if (aba === 'vendas-por-cliente') {
+      colunas = ['Cliente', 'Venda', 'Data', 'Pagamento', 'Qtd.', 'Valor', 'Status Pendência'];
+      for (const grupo of resultado) {
+        for (const v of grupo.vendas) {
+          linhas.push([
+            grupo.clienteNome,
+            `#${v.id}`,
+            new Date(v.data).toLocaleDateString('pt-BR'),
+            v.formaPagamento,
+            v.quantidade,
+            `R$ ${v.valorTotal.toFixed(2)}`,
+            STATUS_LABEL[v.statusPendencia] || v.statusPendencia,
+          ]);
+        }
+      }
+    } else if (aba === 'pagamentos-recebidos') {
+      colunas = ['Cliente', 'Venda', 'Data Venda', 'Valor Venda', 'Valor Recebido', 'Recebido em', 'Cód. Baixa'];
+      for (const grupo of resultado) {
+        for (const p of grupo.pagamentos) {
+          linhas.push([
+            grupo.clienteNome,
+            `#${p.vendaId}`,
+            new Date(p.dataVenda).toLocaleDateString('pt-BR'),
+            `R$ ${p.valorVenda.toFixed(2)}`,
+            `R$ ${p.valor.toFixed(2)}`,
+            new Date(p.pagoEm).toLocaleDateString('pt-BR'),
+            p.codigoBaixa || '-',
+          ]);
+        }
+      }
+    } else {
+      colunas = ['Cliente', 'Venda', 'Data Venda', 'Valor Venda', 'Valor Pendente', 'Vencimento', 'Status'];
+      for (const grupo of resultado) {
+        for (const p of grupo.pendencias) {
+          linhas.push([
+            grupo.clienteNome,
+            `#${p.vendaId}`,
+            new Date(p.dataVenda).toLocaleDateString('pt-BR'),
+            `R$ ${p.valorVenda.toFixed(2)}`,
+            `R$ ${p.valor.toFixed(2)}`,
+            new Date(p.vencimento).toLocaleDateString('pt-BR'),
+            STATUS_LABEL[p.status] || p.status,
+          ]);
+        }
+      }
+    }
+
+    baixarPdf({
+      nomeArquivo: `${aba}.pdf`,
+      titulo: TITULOS[aba],
+      subtitulos,
+      colunas,
+      linhas,
+    });
   }
 
   return (
@@ -104,7 +188,7 @@ export default function Relatorios() {
         ))}
       </div>
 
-      <div className="flex gap-3 items-end mb-6">
+      <div className="flex flex-wrap gap-3 items-end mb-6">
         <div>
           <label className="block text-sm mb-1">Data Início</label>
           <input
@@ -167,6 +251,13 @@ export default function Relatorios() {
           Exportar CSV
         </button>
         <button
+          onClick={exportarPdf}
+          disabled={resultado.length === 0}
+          className="bg-white border px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
+        >
+          Baixar PDF
+        </button>
+        <button
           onClick={imprimir}
           disabled={resultado.length === 0}
           className="bg-white border px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
@@ -192,6 +283,7 @@ export default function Relatorios() {
                     <th className="py-1">Pagamento</th>
                     <th className="py-1">Qtd.</th>
                     <th className="py-1">Valor</th>
+                    <th className="py-1">Status Pendência</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -202,6 +294,7 @@ export default function Relatorios() {
                       <td className="py-1">{v.formaPagamento}</td>
                       <td className="py-1">{v.quantidade}</td>
                       <td className="py-1">R$ {v.valorTotal.toFixed(2)}</td>
+                      <td className="py-1">{STATUS_LABEL[v.statusPendencia] || v.statusPendencia}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -213,9 +306,11 @@ export default function Relatorios() {
                 <thead className="text-left text-gray-500">
                   <tr>
                     <th className="py-1">Venda</th>
+                    <th className="py-1">Data Venda</th>
+                    <th className="py-1">Valor Venda</th>
+                    <th className="py-1">Valor Recebido</th>
                     <th className="py-1">Código Baixa</th>
-                    <th className="py-1">Valor</th>
-                    <th className="py-1">Pago em</th>
+                    <th className="py-1">Recebido em</th>
                     <th className="py-1"></th>
                   </tr>
                 </thead>
@@ -223,8 +318,10 @@ export default function Relatorios() {
                   {grupo.pagamentos.map((p) => (
                     <tr key={p.contaId} className="border-t">
                       <td className="py-1">#{p.vendaId}</td>
-                      <td className="py-1">{p.codigoBaixa || '-'}</td>
+                      <td className="py-1">{new Date(p.dataVenda).toLocaleDateString('pt-BR')}</td>
+                      <td className="py-1">R$ {p.valorVenda.toFixed(2)}</td>
                       <td className="py-1">R$ {p.valor.toFixed(2)}</td>
+                      <td className="py-1">{p.codigoBaixa || '-'}</td>
                       <td className="py-1">{new Date(p.pagoEm).toLocaleDateString('pt-BR')}</td>
                       <td className="py-1">
                         {p.baixaId && (
@@ -247,7 +344,9 @@ export default function Relatorios() {
                 <thead className="text-left text-gray-500">
                   <tr>
                     <th className="py-1">Venda</th>
-                    <th className="py-1">Valor</th>
+                    <th className="py-1">Data Venda</th>
+                    <th className="py-1">Valor Venda</th>
+                    <th className="py-1">Valor Pendente</th>
                     <th className="py-1">Vencimento</th>
                     <th className="py-1">Status</th>
                   </tr>
@@ -256,6 +355,8 @@ export default function Relatorios() {
                   {grupo.pendencias.map((p) => (
                     <tr key={p.contaId} className="border-t">
                       <td className="py-1">#{p.vendaId}</td>
+                      <td className="py-1">{new Date(p.dataVenda).toLocaleDateString('pt-BR')}</td>
+                      <td className="py-1">R$ {p.valorVenda.toFixed(2)}</td>
                       <td className="py-1">R$ {p.valor.toFixed(2)}</td>
                       <td className="py-1">{new Date(p.vencimento).toLocaleDateString('pt-BR')}</td>
                       <td className="py-1">{STATUS_LABEL[p.status]}</td>
