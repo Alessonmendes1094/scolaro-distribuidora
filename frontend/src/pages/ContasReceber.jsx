@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import api from '../lib/api';
+import { STATUS_LABEL } from '../lib/status';
 
 const badge = {
   PENDENTE: 'bg-yellow-100 text-yellow-800',
@@ -202,7 +203,9 @@ export default function ContasReceber() {
               <td className="p-3">R$ {Number(c.valor).toFixed(2)}</td>
               <td className="p-3">{new Date(c.vencimento).toLocaleDateString('pt-BR')}</td>
               <td className="p-3">
-                <span className={`px-2 py-1 rounded text-xs ${badge[c.status]}`}>{c.status}</span>
+                <span className={`px-2 py-1 rounded text-xs ${badge[c.status]}`}>
+                  {STATUS_LABEL[c.status]}
+                </span>
               </td>
               <td className="p-3">{c.baixa?.codigo || '-'}</td>
               <td className="p-3 space-x-2">

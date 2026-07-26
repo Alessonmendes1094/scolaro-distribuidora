@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import api from '../lib/api';
+import { STATUS_LABEL } from '../lib/status';
 
 const TITULOS = {
   'vendas-por-cliente': 'Relatório de Vendas por Cliente',
@@ -140,7 +141,7 @@ export default function RelatorioImpressao() {
                     <td className="py-1">#{p.vendaId}</td>
                     <td className="py-1">R$ {p.valor.toFixed(2)}</td>
                     <td className="py-1">{new Date(p.vencimento).toLocaleDateString('pt-BR')}</td>
-                    <td className="py-1 text-right">{p.status}</td>
+                    <td className="py-1 text-right">{STATUS_LABEL[p.status]}</td>
                   </tr>
                 ))}
               </tbody>

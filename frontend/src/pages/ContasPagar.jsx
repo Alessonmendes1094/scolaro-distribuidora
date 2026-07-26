@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import Modal from '../components/Modal.jsx';
+import { STATUS_LABEL } from '../lib/status';
 
 const FORM_INICIAL = { descricao: '', categoria: 'OUTROS', valor: '', vencimento: '' };
 
@@ -93,7 +94,9 @@ export default function ContasPagar() {
               <td className="p-3">R$ {Number(c.valor).toFixed(2)}</td>
               <td className="p-3">{new Date(c.vencimento).toLocaleDateString('pt-BR')}</td>
               <td className="p-3">
-                <span className={`px-2 py-1 rounded text-xs ${badge[c.status]}`}>{c.status}</span>
+                <span className={`px-2 py-1 rounded text-xs ${badge[c.status]}`}>
+                  {STATUS_LABEL[c.status]}
+                </span>
               </td>
               <td className="p-3">
                 {c.status !== 'PAGO' ? (

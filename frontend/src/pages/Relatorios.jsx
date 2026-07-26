@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import { baixarCsv } from '../lib/csv';
+import { STATUS_LABEL } from '../lib/status';
 
 const ABAS = [
   { id: 'vendas-por-cliente', label: 'Vendas por Cliente' },
@@ -257,7 +258,7 @@ export default function Relatorios() {
                       <td className="py-1">#{p.vendaId}</td>
                       <td className="py-1">R$ {p.valor.toFixed(2)}</td>
                       <td className="py-1">{new Date(p.vencimento).toLocaleDateString('pt-BR')}</td>
-                      <td className="py-1">{p.status}</td>
+                      <td className="py-1">{STATUS_LABEL[p.status]}</td>
                     </tr>
                   ))}
                 </tbody>
