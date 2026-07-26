@@ -119,6 +119,7 @@ model ItemVenda {
   produtoId     Int
   quantidade    Decimal @db.Decimal(12, 3)
   precoUnitario Decimal @db.Decimal(12, 2)
+  custoUnitario Decimal? @db.Decimal(12, 2)
 }
 
 model ContaReceber {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../lib/api';
 import Modal from '../components/Modal.jsx';
 
-const ITEM_VAZIO = { produtoId: '', quantidade: '', precoUnitario: '' };
+const ITEM_VAZIO = { produtoId: '', quantidade: '', precoUnitario: '', custoUnitario: null };
 
 export default function Vendas() {
   const [lista, setLista] = useState([]);
@@ -51,13 +51,23 @@ export default function Vendas() {
     setUltimaVenda(data);
   }
 
-  function usarItensDaUltimaVenda() {
+  async function usarItensDaUltimaVenda() {
     if (!ultimaVenda) return;
-    setItens(
-      ultimaVenda.itens.map((i) => ({
-        produtoId: String(i.produtoId),
-        quantidade: Number(i.quantidade),
-        precoUnitario: Number(i.precoUnitario),
+    const novosItens = ultimaVenda.itens.map((i) => ({
+      produtoId: String(i.produtoId),
+      quantidade: Number(i.quantidade),
+      precoUnitario: Number(i.precoUnitario),
+      custoUnitario: null,
+    }));
+    setItens(novosItens);
+
+    const custos = await Promise.all(
+      novosItens.map((i) => api.get(`/produtos/${i.produtoId}/ultimo-custo`))
+    );
+    setItens((atual) =>
+      atual.map((item, idx) => ({
+        ...item,
+        custoUnitario: custos[idx]?.data.custoUnitario ?? null,
       }))
     );
   }
@@ -76,12 +86,21 @@ export default function Vendas() {
     setItens(itens.filter((_, i) => i !== index));
   }
 
-  function selecionarProduto(index, produtoId) {
+  async function selecionarProduto(index, produtoId) {
     const produto = produtos.find((p) => String(p.id) === String(produtoId));
     const novosItens = [...itens];
     novosItens[index].produtoId = produtoId;
     novosItens[index].precoUnitario = produto ? Number(produto.precoVenda) : '';
+    novosItens[index].custoUnitario = null;
     setItens(novosItens);
+
+    if (!produtoId) return;
+    const { data } = await api.get(`/produtos/${produtoId}/ultimo-custo`);
+    setItens((atual) => {
+      const copia = [...atual];
+      if (copia[index]) copia[index].custoUnitario = data.custoUnitario;
+      return copia;
+    });
   }
 
   async function salvar(e) {
@@ -122,11 +141,13 @@ export default function Vendas() {
       <table className="w-full bg-white rounded shadow overflow-hidden">
         <thead className="bg-slate-100 text-left text-sm">
           <tr>
+            <th className="p-3">ID</th>
             <th className="p-3">Data</th>
             <th className="p-3">Cliente</th>
             <th className="p-3">Forma Pagamento</th>
             <th className="p-3">Itens</th>
             <th className="p-3">Total</th>
+            <th className="p-3">Lucro</th>
             <th className="p-3 w-24">Ações</th>
           </tr>
         </thead>
@@ -136,8 +157,10 @@ export default function Vendas() {
               (acc, i) => acc + Number(i.quantidade) * Number(i.precoUnitario),
               0
             );
+            const lucro = v.lucroTotal ?? 0;
             return (
               <tr key={v.id} className="border-t">
+                <td className="p-3">#{v.id}</td>
                 <td className="p-3">{new Date(v.data).toLocaleDateString('pt-BR')}</td>
                 <td className="p-3">{v.cliente?.nome}</td>
                 <td className="p-3">{v.formaPagamento}</td>
@@ -145,6 +168,9 @@ export default function Vendas() {
                   {v.itens.map((i) => `${i.produto.nome} (${Number(i.quantidade)})`).join(', ')}
                 </td>
                 <td className="p-3">R$ {total.toFixed(2)}</td>
+                <td className={`p-3 font-medium ${lucro < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                  R$ {lucro.toFixed(2)}
+                </td>
                 <td className="p-3">
                   <button
                     onClick={() => window.open(`/recibo/${v.id}`, '_blank')}
@@ -158,7 +184,7 @@ export default function Vendas() {
           })}
           {lista.length === 0 && (
             <tr>
-              <td colSpan={6} className="p-3 text-center text-gray-400">
+              <td colSpan={8} className="p-3 text-center text-gray-400">
                 Nenhuma venda registrada
               </td>
             </tr>
@@ -250,48 +276,75 @@ export default function Vendas() {
           )}
 
           <div className="mb-2 font-medium text-sm">Itens</div>
-          {itens.map((item, index) => (
-            <div key={index} className="grid grid-cols-12 gap-2 mb-2 items-center">
-              <select
-                className="col-span-5 border rounded px-2 py-1.5 text-sm"
-                value={item.produtoId}
-                onChange={(e) => selecionarProduto(index, e.target.value)}
-                required
-              >
-                <option value="">Produto...</option>
-                {produtos.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nome} (estoque: {Number(p.estoqueAtual)})
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                step="0.001"
-                placeholder="Qtd"
-                className="col-span-3 border rounded px-2 py-1.5 text-sm"
-                value={item.quantidade}
-                onChange={(e) => atualizarItem(index, 'quantidade', e.target.value)}
-                required
-              />
-              <input
-                type="number"
-                step="0.01"
-                placeholder="Preço Unit."
-                className="col-span-3 border rounded px-2 py-1.5 text-sm"
-                value={item.precoUnitario}
-                onChange={(e) => atualizarItem(index, 'precoUnitario', e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => removerItem(index)}
-                className="col-span-1 text-red-600"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
+          {itens.map((item, index) => {
+            const temCusto = item.custoUnitario !== null && item.custoUnitario !== undefined;
+            const lucroUnitario = temCusto
+              ? Number(item.precoUnitario || 0) - Number(item.custoUnitario)
+              : null;
+            const lucroItem = lucroUnitario !== null ? lucroUnitario * Number(item.quantidade || 0) : null;
+
+            return (
+              <div key={index} className="mb-2">
+                <div className="grid grid-cols-12 gap-2 items-center">
+                  <select
+                    className="col-span-5 border rounded px-2 py-1.5 text-sm"
+                    value={item.produtoId}
+                    onChange={(e) => selecionarProduto(index, e.target.value)}
+                    required
+                  >
+                    <option value="">Produto...</option>
+                    {produtos.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nome} (estoque: {Number(p.estoqueAtual)})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    step="0.001"
+                    placeholder="Qtd"
+                    className="col-span-3 border rounded px-2 py-1.5 text-sm"
+                    value={item.quantidade}
+                    onChange={(e) => atualizarItem(index, 'quantidade', e.target.value)}
+                    required
+                  />
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="Preço Unit."
+                    className="col-span-3 border rounded px-2 py-1.5 text-sm"
+                    value={item.precoUnitario}
+                    onChange={(e) => atualizarItem(index, 'precoUnitario', e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removerItem(index)}
+                    className="col-span-1 text-red-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {item.produtoId && (
+                  <div className="text-xs text-gray-500 mt-1 pl-1">
+                    {temCusto ? (
+                      <>
+                        Custo última compra: R$ {Number(item.custoUnitario).toFixed(2)} — Lucro
+                        {lucroItem !== null && (
+                          <span className={lucroItem < 0 ? 'text-red-600 font-medium' : 'text-green-700 font-medium'}>
+                            {' '}
+                            R$ {lucroItem.toFixed(2)}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      'Sem histórico de compra deste produto para calcular lucro'
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
           <button
             type="button"
             onClick={adicionarItem}

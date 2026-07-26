@@ -34,6 +34,17 @@ router.get('/', async (req, res) => {
     0
   );
 
+  const lucroTotal = vendas.reduce(
+    (acc, venda) =>
+      acc +
+      venda.itens.reduce(
+        (s, i) =>
+          s + (Number(i.precoUnitario) - Number(i.custoUnitario ?? 0)) * Number(i.quantidade),
+        0
+      ),
+    0
+  );
+
   const vendasPorDiaMap = {};
   for (const venda of vendas) {
     const dia = venda.data.toISOString().slice(0, 10);
@@ -70,6 +81,7 @@ router.get('/', async (req, res) => {
   res.json({
     periodo: { dataInicio, dataFim },
     totalVendido,
+    lucroTotal,
     vendasPorDia,
     contasReceber: {
       pendente: totalReceberPendente,

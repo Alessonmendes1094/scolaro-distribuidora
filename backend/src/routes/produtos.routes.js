@@ -14,6 +14,15 @@ router.get('/:id', async (req, res) => {
   res.json(produto);
 });
 
+router.get('/:id/ultimo-custo', async (req, res) => {
+  const ultimoItemCompra = await prisma.itemCompra.findFirst({
+    where: { produtoId: Number(req.params.id) },
+    orderBy: [{ compra: { data: 'desc' } }, { id: 'desc' }],
+  });
+
+  res.json({ custoUnitario: ultimoItemCompra ? Number(ultimoItemCompra.custoUnitario) : null });
+});
+
 router.post('/', async (req, res) => {
   const { nome, unidade, estoqueAtual, precoVenda } = req.body;
   if (!nome || !unidade || precoVenda === undefined) {

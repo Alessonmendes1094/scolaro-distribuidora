@@ -54,10 +54,20 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded shadow p-4">
           <div className="text-sm text-gray-500">Total Vendido no Período</div>
           <div className="text-2xl font-bold">R$ {dados.totalVendido.toFixed(2)}</div>
+        </div>
+        <div className="bg-white rounded shadow p-4">
+          <div className="text-sm text-gray-500">Lucro no Período</div>
+          <div
+            className={`text-2xl font-bold ${
+              dados.lucroTotal < 0 ? 'text-red-600' : 'text-green-700'
+            }`}
+          >
+            R$ {dados.lucroTotal.toFixed(2)}
+          </div>
         </div>
         <div className="bg-white rounded shadow p-4">
           <div className="text-sm text-gray-500">Contas a Receber Pendente</div>

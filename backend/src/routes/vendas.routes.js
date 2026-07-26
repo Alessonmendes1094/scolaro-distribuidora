@@ -21,7 +21,18 @@ router.get('/', async (req, res) => {
     include: { cliente: true, itens: { include: { produto: true } }, contasReceber: true },
     orderBy: { data: 'desc' },
   });
-  res.json(vendas);
+
+  const vendasComLucro = vendas.map((venda) => ({
+    ...venda,
+    lucroTotal: venda.itens.reduce(
+      (acc, item) =>
+        acc +
+        (Number(item.precoUnitario) - Number(item.custoUnitario ?? 0)) * Number(item.quantidade),
+      0
+    ),
+  }));
+
+  res.json(vendasComLucro);
 });
 
 router.get('/ultima-por-cliente/:clienteId', async (req, res) => {
@@ -74,6 +85,17 @@ router.post('/', async (req, res) => {
       0
     );
 
+    const custosPorProduto = {};
+    for (const produtoId of produtosIds) {
+      const ultimoItemCompra = await prisma.itemCompra.findFirst({
+        where: { produtoId },
+        orderBy: [{ compra: { data: 'desc' } }, { id: 'desc' }],
+      });
+      custosPorProduto[produtoId] = ultimoItemCompra
+        ? Number(ultimoItemCompra.custoUnitario)
+        : null;
+    }
+
     const venda = await prisma.$transaction(async (tx) => {
       const novaVenda = await tx.venda.create({
         data: {
@@ -85,6 +107,7 @@ router.post('/', async (req, res) => {
               produtoId: Number(item.produtoId),
               quantidade: item.quantidade,
               precoUnitario: item.precoUnitario,
+              custoUnitario: custosPorProduto[Number(item.produtoId)],
             })),
           },
         },
