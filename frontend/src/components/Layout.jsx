@@ -1,19 +1,35 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Building2,
+  Truck,
+  Package,
+  Users,
+  ShoppingCart,
+  Receipt,
+  Wallet,
+  HandCoins,
+  Landmark,
+  FileBarChart,
+  Menu,
+  X,
+  LogOut,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const links = [
-  { to: '/', label: 'Dashboard', end: true },
-  { to: '/empresas', label: 'Empresas' },
-  { to: '/fornecedores', label: 'Fornecedores' },
-  { to: '/produtos', label: 'Produtos' },
-  { to: '/clientes', label: 'Clientes' },
-  { to: '/compras', label: 'Compras' },
-  { to: '/vendas', label: 'Vendas' },
-  { to: '/contas-pagar', label: 'Contas a Pagar' },
-  { to: '/contas-receber', label: 'Contas a Receber' },
-  { to: '/caixa', label: 'Caixa' },
-  { to: '/relatorios', label: 'Relatórios' },
+  { to: '/', label: 'Dashboard', end: true, icon: LayoutDashboard },
+  { to: '/empresas', label: 'Empresas', icon: Building2 },
+  { to: '/fornecedores', label: 'Fornecedores', icon: Truck },
+  { to: '/produtos', label: 'Produtos', icon: Package },
+  { to: '/clientes', label: 'Clientes', icon: Users },
+  { to: '/compras', label: 'Compras', icon: ShoppingCart },
+  { to: '/vendas', label: 'Vendas', icon: Receipt },
+  { to: '/contas-pagar', label: 'Contas a Pagar', icon: Wallet },
+  { to: '/contas-receber', label: 'Contas a Receber', icon: HandCoins },
+  { to: '/caixa', label: 'Caixa', icon: Landmark },
+  { to: '/relatorios', label: 'Relatórios', icon: FileBarChart },
 ];
 
 export default function Layout() {
@@ -29,23 +45,7 @@ export default function Layout() {
           className="p-2 -mr-2"
           aria-label="Abrir menu"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            {menuAberto ? (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            ) : (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            )}
-          </svg>
+          {menuAberto ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </header>
 
@@ -58,28 +58,33 @@ export default function Layout() {
           Scolaro Distribuidora
         </div>
         <nav className="flex-1 overflow-y-auto max-h-[70vh] md:max-h-none">
-          {links.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              end={link.end}
-              onClick={() => setMenuAberto(false)}
-              className={({ isActive }) =>
-                `block px-4 py-3 md:py-2 text-sm hover:bg-slate-800 ${
-                  isActive ? 'bg-slate-800 font-semibold' : ''
-                }`
-              }
-            >
-              {link.label}
-            </NavLink>
-          ))}
+          {links.map((link) => {
+            const Icon = link.icon;
+            return (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.end}
+                onClick={() => setMenuAberto(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-2.5 px-4 py-3 md:py-2 text-sm hover:bg-slate-800 ${
+                    isActive ? 'bg-slate-800 font-semibold' : ''
+                  }`
+                }
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                {link.label}
+              </NavLink>
+            );
+          })}
         </nav>
         <div className="p-4 border-t border-slate-700 text-sm">
           <div className="mb-2">{usuario?.nome}</div>
           <button
             onClick={logout}
-            className="w-full bg-red-600 hover:bg-red-700 text-white rounded px-3 py-1.5"
+            className="w-full bg-red-600 hover:bg-red-700 text-white rounded px-3 py-1.5 flex items-center justify-center gap-1.5"
           >
+            <LogOut className="w-4 h-4" />
             Sair
           </button>
         </div>

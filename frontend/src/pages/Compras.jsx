@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { ShoppingCart, Plus, Pencil, Trash2 } from 'lucide-react';
 import api from '../lib/api';
 import { formatarData } from '../lib/date';
 import Modal from '../components/Modal.jsx';
 import CompraDetalheModal from '../components/CompraDetalheModal.jsx';
+import SortableTh from '../components/SortableTh.jsx';
+import { useSort } from '../lib/useSort';
 import { FORMA_PAGAMENTO_LABEL, FORMA_PAGAMENTO_OPCOES, FORMAS_PAGAMENTO_IMEDIATAS } from '../lib/formaPagamento';
+
+function totalCompra(c) {
+  return c.itens.reduce((acc, i) => acc + Number(i.quantidade) * Number(i.custoUnitario), 0);
+}
 
 const ITEM_VAZIO = { produtoId: '', quantidade: '', custoUnitario: '' };
 
@@ -23,6 +30,20 @@ export default function Compras() {
   const [erro, setErro] = useState('');
   const [editandoId, setEditandoId] = useState(null);
   const [compraDetalheId, setCompraDetalheId] = useState(null);
+
+  const { dadosOrdenados, sortKey, sortDir, requestSort } = useSort(
+    lista,
+    {
+      id: (c) => c.id,
+      data: (c) => c.data,
+      fornecedor: (c) => c.fornecedor?.nome?.toLowerCase(),
+      comNota: (c) => c.comNota,
+      formaPagamento: (c) => c.formaPagamento,
+      total: (c) => totalCompra(c),
+    },
+    'data',
+    'desc'
+  );
 
   async function carregar() {
     const [comprasRes, fornecedoresRes, produtosRes] = await Promise.all([
@@ -133,11 +154,15 @@ export default function Compras() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Compras</h1>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <ShoppingCart className="w-6 h-6 text-slate-700" />
+          Compras
+        </h1>
         <button
           onClick={abrirNovo}
-          className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800"
+          className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800 flex items-center gap-1.5"
         >
+          <Plus className="w-4 h-4" />
           Nova Compra
         </button>
       </div>
@@ -146,22 +171,19 @@ export default function Compras() {
       <table className="w-full bg-white rounded shadow overflow-hidden">
         <thead className="bg-slate-100 text-left text-sm">
           <tr>
-            <th className="p-3">ID</th>
-            <th className="p-3">Data</th>
-            <th className="p-3">Fornecedor</th>
-            <th className="p-3">Nota Fiscal</th>
-            <th className="p-3">Pagamento</th>
+            <SortableTh label="ID" sortKey="id" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Data" sortKey="data" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Fornecedor" sortKey="fornecedor" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Nota Fiscal" sortKey="comNota" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Pagamento" sortKey="formaPagamento" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
             <th className="p-3">Itens</th>
-            <th className="p-3">Total</th>
+            <SortableTh label="Total" sortKey="total" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
             <th className="p-3 w-32">Ações</th>
           </tr>
         </thead>
         <tbody className="text-sm">
-          {lista.map((c) => {
-            const total = c.itens.reduce(
-              (acc, i) => acc + Number(i.quantidade) * Number(i.custoUnitario),
-              0
-            );
+          {dadosOrdenados.map((c) => {
+            const total = totalCompra(c);
             const contaPaga = c.contasPagar?.some((cp) => cp.status === 'PAGO');
             return (
               <tr key={c.id} className="border-t">
@@ -195,14 +217,16 @@ export default function Compras() {
                     <>
                       <button
                         onClick={() => abrirEdicao(c)}
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-600 hover:underline inline-flex items-center gap-1"
                       >
+                        <Pencil className="w-3.5 h-3.5" />
                         Editar
                       </button>
                       <button
                         onClick={() => excluir(c.id)}
-                        className="text-red-600 hover:underline"
+                        className="text-red-600 hover:underline inline-flex items-center gap-1"
                       >
+                        <Trash2 className="w-3.5 h-3.5" />
                         Excluir
                       </button>
                     </>
@@ -211,7 +235,7 @@ export default function Compras() {
               </tr>
             );
           })}
-          {lista.length === 0 && (
+          {dadosOrdenados.length === 0 && (
             <tr>
               <td colSpan={8} className="p-3 text-center text-gray-400">
                 Nenhuma compra registrada

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Building2, Plus, Pencil, Trash2 } from 'lucide-react';
 import api from '../lib/api';
 import Modal from '../components/Modal.jsx';
+import SortableTh from '../components/SortableTh.jsx';
+import { useSort } from '../lib/useSort';
 
 const FORM_INICIAL = { cnpj: '', razaoSocial: '', telefone: '' };
 
@@ -9,6 +12,18 @@ export default function Empresas() {
   const [modalAberto, setModalAberto] = useState(false);
   const [form, setForm] = useState(FORM_INICIAL);
   const [editandoId, setEditandoId] = useState(null);
+
+  const { dadosOrdenados, sortKey, sortDir, requestSort } = useSort(
+    lista,
+    {
+      cnpj: (e) => e.cnpj,
+      razaoSocial: (e) => e.razaoSocial?.toLowerCase(),
+      telefone: (e) => e.telefone,
+      createdAt: (e) => e.createdAt,
+    },
+    'createdAt',
+    'desc'
+  );
 
   async function carregar() {
     const { data } = await api.get('/empresas');
@@ -55,11 +70,15 @@ export default function Empresas() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Empresas</h1>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <Building2 className="w-6 h-6 text-slate-700" />
+          Empresas
+        </h1>
         <button
           onClick={abrirNovo}
-          className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800"
+          className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800 flex items-center gap-1.5"
         >
+          <Plus className="w-4 h-4" />
           Nova Empresa
         </button>
       </div>
@@ -68,29 +87,31 @@ export default function Empresas() {
       <table className="w-full bg-white rounded shadow overflow-hidden">
         <thead className="bg-slate-100 text-left text-sm">
           <tr>
-            <th className="p-3">CNPJ</th>
-            <th className="p-3">Razão Social</th>
-            <th className="p-3">Telefone</th>
+            <SortableTh label="CNPJ" sortKey="cnpj" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Razão Social" sortKey="razaoSocial" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Telefone" sortKey="telefone" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
             <th className="p-3 w-32">Ações</th>
           </tr>
         </thead>
         <tbody className="text-sm">
-          {lista.map((e) => (
+          {dadosOrdenados.map((e) => (
             <tr key={e.id} className="border-t">
               <td className="p-3">{e.cnpj}</td>
               <td className="p-3">{e.razaoSocial}</td>
               <td className="p-3">{e.telefone}</td>
-              <td className="p-3 space-x-2">
-                <button onClick={() => abrirEdicao(e)} className="text-blue-600 hover:underline">
+              <td className="p-3 space-x-3">
+                <button onClick={() => abrirEdicao(e)} className="text-blue-600 hover:underline inline-flex items-center gap-1">
+                  <Pencil className="w-3.5 h-3.5" />
                   Editar
                 </button>
-                <button onClick={() => excluir(e.id)} className="text-red-600 hover:underline">
+                <button onClick={() => excluir(e.id)} className="text-red-600 hover:underline inline-flex items-center gap-1">
+                  <Trash2 className="w-3.5 h-3.5" />
                   Excluir
                 </button>
               </td>
             </tr>
           ))}
-          {lista.length === 0 && (
+          {dadosOrdenados.length === 0 && (
             <tr>
               <td colSpan={4} className="p-3 text-center text-gray-400">
                 Nenhuma empresa cadastrada

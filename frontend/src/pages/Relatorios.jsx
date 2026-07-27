@@ -7,6 +7,7 @@ import { baixarPdf } from '../lib/pdf';
 import { STATUS_LABEL, STATUS_BADGE } from '../lib/status';
 import { FORMA_PAGAMENTO_LABEL } from '../lib/formaPagamento';
 import VendaDetalheModal from '../components/VendaDetalheModal.jsx';
+import { FileBarChart, Filter, FileSpreadsheet, FileDown, Printer } from 'lucide-react';
 
 const ABAS = [
   { id: 'vendas-por-cliente', label: 'Vendas por Cliente' },
@@ -351,7 +352,10 @@ export default function Relatorios() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Relatórios</h1>
+      <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
+        <FileBarChart className="w-6 h-6 text-slate-700" />
+        Relatórios
+      </h1>
 
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
         {ABAS.map((a) => (
@@ -466,22 +470,25 @@ export default function Relatorios() {
         )}
         <button
           onClick={gerar}
-          className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800"
+          className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800 flex items-center gap-1.5"
         >
+          <Filter className="w-4 h-4" />
           Gerar
         </button>
         <button
           onClick={exportarCsv}
           disabled={resultado.length === 0}
-          className="bg-white border px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
+          className="bg-white border px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50 flex items-center gap-1.5"
         >
+          <FileSpreadsheet className="w-4 h-4" />
           Exportar CSV
         </button>
         <button
           onClick={exportarPdf}
           disabled={resultado.length === 0}
-          className="bg-white border px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
+          className="bg-white border px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50 flex items-center gap-1.5"
         >
+          <FileDown className="w-4 h-4" />
           Baixar PDF
         </button>
         <button
@@ -497,8 +504,9 @@ export default function Relatorios() {
               ? 'Use "Baixar PDF" para este relatório'
               : undefined
           }
-          className="bg-white border px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
+          className="bg-white border px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50 flex items-center gap-1.5"
         >
+          <Printer className="w-4 h-4" />
           Imprimir
         </button>
       </div>

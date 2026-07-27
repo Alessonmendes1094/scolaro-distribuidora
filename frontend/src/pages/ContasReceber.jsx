@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { HandCoins, Printer, Undo2, Ban } from 'lucide-react';
 import api from '../lib/api';
 import { formatarData } from '../lib/date';
 import { STATUS_LABEL, STATUS_BADGE } from '../lib/status';
 import VendaDetalheModal from '../components/VendaDetalheModal.jsx';
+import SortableTh from '../components/SortableTh.jsx';
+import { useSort } from '../lib/useSort';
 
 export default function ContasReceber() {
   const [lista, setLista] = useState([]);
@@ -115,9 +118,26 @@ export default function ContasReceber() {
     (c) => c.status !== 'PAGO' && c.status !== 'PERDIDO'
   );
 
+  const { dadosOrdenados, sortKey, sortDir, requestSort } = useSort(
+    lista,
+    {
+      cliente: (c) => c.venda?.cliente?.nome?.toLowerCase(),
+      venda: (c) => c.vendaId,
+      valor: (c) => Number(c.valor),
+      vencimento: (c) => c.vencimento,
+      status: (c) => c.status,
+      codigoBaixa: (c) => c.baixa?.codigo,
+    },
+    'vencimento',
+    'desc'
+  );
+
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Contas a Receber</h1>
+      <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
+        <HandCoins className="w-6 h-6 text-slate-700" />
+        Contas a Receber
+      </h1>
 
       <div className="flex flex-wrap gap-3 items-end mb-4">
         <div>
@@ -200,17 +220,17 @@ export default function ContasReceber() {
         <thead className="bg-slate-100 text-left text-sm">
           <tr>
             <th className="p-3 w-10"></th>
-            <th className="p-3">Cliente</th>
-            <th className="p-3">Venda</th>
-            <th className="p-3">Valor</th>
-            <th className="p-3">Vencimento</th>
-            <th className="p-3">Status</th>
-            <th className="p-3">Código Baixa</th>
+            <SortableTh label="Cliente" sortKey="cliente" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Venda" sortKey="venda" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Valor" sortKey="valor" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Vencimento" sortKey="vencimento" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Status" sortKey="status" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Código Baixa" sortKey="codigoBaixa" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
             <th className="p-3 w-40">Ações</th>
           </tr>
         </thead>
         <tbody className="text-sm">
-          {lista.map((c) => (
+          {dadosOrdenados.map((c) => (
             <tr key={c.id} className="border-t">
               <td className="p-3">
                 {c.status !== 'PAGO' && c.status !== 'PERDIDO' && (
@@ -241,21 +261,23 @@ export default function ContasReceber() {
                 )}
               </td>
               <td className="p-3">{c.baixa?.codigo || '-'}</td>
-              <td className="p-3 space-x-2">
+              <td className="p-3 space-x-3">
                 {c.status === 'PAGO' && (
                   <>
                     {c.baixaId && (
                       <button
                         onClick={() => window.open(`/recibo-pagamento/${c.baixaId}`, '_blank')}
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-600 hover:underline inline-flex items-center gap-1"
                       >
+                        <Printer className="w-3.5 h-3.5" />
                         Recibo
                       </button>
                     )}
                     <button
                       onClick={() => cancelarBaixa(c.id)}
-                      className="text-red-600 hover:underline"
+                      className="text-red-600 hover:underline inline-flex items-center gap-1"
                     >
+                      <Undo2 className="w-3.5 h-3.5" />
                       Cancelar baixa
                     </button>
                   </>
@@ -263,8 +285,9 @@ export default function ContasReceber() {
                 {c.status === 'PERDIDO' && (
                   <button
                     onClick={() => reverterPerda(c.id)}
-                    className="text-blue-600 hover:underline"
+                    className="text-blue-600 hover:underline inline-flex items-center gap-1"
                   >
+                    <Undo2 className="w-3.5 h-3.5" />
                     Reverter perda
                   </button>
                 )}
@@ -275,14 +298,16 @@ export default function ContasReceber() {
                         setSelecionadas([c.id]);
                         setValorBaixa(Number(c.valor).toFixed(2));
                       }}
-                      className="text-green-700 hover:underline"
+                      className="text-green-700 hover:underline inline-flex items-center gap-1"
                     >
+                      <HandCoins className="w-3.5 h-3.5" />
                       Marcar recebido
                     </button>
                     <button
                       onClick={() => marcarPerdido(c.id)}
-                      className="text-gray-600 hover:underline"
+                      className="text-gray-600 hover:underline inline-flex items-center gap-1"
                     >
+                      <Ban className="w-3.5 h-3.5" />
                       Marcar perdido
                     </button>
                   </>
@@ -290,7 +315,7 @@ export default function ContasReceber() {
               </td>
             </tr>
           ))}
-          {lista.length === 0 && (
+          {dadosOrdenados.length === 0 && (
             <tr>
               <td colSpan={8} className="p-3 text-center text-gray-400">
                 Nenhuma conta a receber

@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
+import { Wallet, Plus, CircleDollarSign, Undo2 } from 'lucide-react';
 import api from '../lib/api';
 import { formatarData } from '../lib/date';
 import Modal from '../components/Modal.jsx';
 import CompraDetalheModal from '../components/CompraDetalheModal.jsx';
+import SortableTh from '../components/SortableTh.jsx';
+import { useSort } from '../lib/useSort';
 import { STATUS_LABEL } from '../lib/status';
 
 const FORM_INICIAL = { descricao: '', categoria: 'OUTROS', valor: '', vencimento: '' };
@@ -21,6 +24,20 @@ export default function ContasPagar() {
   const [contaPagando, setContaPagando] = useState(null);
   const [dataPagamento, setDataPagamento] = useState('');
   const [compraDetalheId, setCompraDetalheId] = useState(null);
+
+  const { dadosOrdenados, sortKey, sortDir, requestSort } = useSort(
+    lista,
+    {
+      descricao: (c) => c.descricao?.toLowerCase(),
+      categoria: (c) => c.categoria,
+      valor: (c) => Number(c.valor),
+      vencimento: (c) => c.vencimento,
+      status: (c) => c.status,
+      createdAt: (c) => c.createdAt,
+    },
+    'createdAt',
+    'desc'
+  );
 
   async function carregar() {
     const { data } = await api.get('/contas-pagar');
@@ -69,11 +86,15 @@ export default function ContasPagar() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Contas a Pagar</h1>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <Wallet className="w-6 h-6 text-slate-700" />
+          Contas a Pagar
+        </h1>
         <button
           onClick={abrirNovo}
-          className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800"
+          className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800 flex items-center gap-1.5"
         >
+          <Plus className="w-4 h-4" />
           Nova Despesa
         </button>
       </div>
@@ -82,17 +103,17 @@ export default function ContasPagar() {
       <table className="w-full bg-white rounded shadow overflow-hidden">
         <thead className="bg-slate-100 text-left text-sm">
           <tr>
-            <th className="p-3">Descrição</th>
+            <SortableTh label="Descrição" sortKey="descricao" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
             <th className="p-3">Compra</th>
-            <th className="p-3">Categoria</th>
-            <th className="p-3">Valor</th>
-            <th className="p-3">Vencimento</th>
-            <th className="p-3">Status</th>
+            <SortableTh label="Categoria" sortKey="categoria" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Valor" sortKey="valor" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Vencimento" sortKey="vencimento" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Status" sortKey="status" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
             <th className="p-3 w-28">Ações</th>
           </tr>
         </thead>
         <tbody className="text-sm">
-          {lista.map((c) => (
+          {dadosOrdenados.map((c) => (
             <tr key={c.id} className="border-t">
               <td className="p-3">{c.descricao}</td>
               <td className="p-3">
@@ -119,22 +140,24 @@ export default function ContasPagar() {
                 {c.status !== 'PAGO' ? (
                   <button
                     onClick={() => abrirPagar(c)}
-                    className="text-green-700 hover:underline"
+                    className="text-green-700 hover:underline inline-flex items-center gap-1"
                   >
+                    <CircleDollarSign className="w-3.5 h-3.5" />
                     Marcar pago
                   </button>
                 ) : (
                   <button
                     onClick={() => cancelarBaixa(c.id)}
-                    className="text-red-600 hover:underline"
+                    className="text-red-600 hover:underline inline-flex items-center gap-1"
                   >
+                    <Undo2 className="w-3.5 h-3.5" />
                     Cancelar baixa
                   </button>
                 )}
               </td>
             </tr>
           ))}
-          {lista.length === 0 && (
+          {dadosOrdenados.length === 0 && (
             <tr>
               <td colSpan={7} className="p-3 text-center text-gray-400">
                 Nenhuma conta a pagar cadastrada

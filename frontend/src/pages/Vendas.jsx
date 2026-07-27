@@ -1,12 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Receipt, Plus, Pencil, Trash2, Printer } from 'lucide-react';
 import api from '../lib/api';
 import { formatarData } from '../lib/date';
 import Modal from '../components/Modal.jsx';
 import VendaDetalheModal from '../components/VendaDetalheModal.jsx';
+import SortableTh from '../components/SortableTh.jsx';
+import { useSort } from '../lib/useSort';
 import { FORMA_PAGAMENTO_LABEL, FORMA_PAGAMENTO_OPCOES, FORMAS_PAGAMENTO_IMEDIATAS } from '../lib/formaPagamento';
 
 const ITEM_VAZIO = { produtoId: '', quantidade: '', precoUnitario: '', custoUnitario: null };
+
+function totalVenda(v) {
+  return v.itens.reduce((acc, i) => acc + Number(i.quantidade) * Number(i.precoUnitario), 0);
+}
 
 export default function Vendas() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -27,6 +34,22 @@ export default function Vendas() {
   const [ultimaVenda, setUltimaVenda] = useState(null);
   const [editandoId, setEditandoId] = useState(null);
   const [vendaDetalheId, setVendaDetalheId] = useState(null);
+
+  const { dadosOrdenados, sortKey, sortDir, requestSort } = useSort(
+    lista,
+    {
+      id: (v) => v.id,
+      empresa: (v) => v.empresa?.razaoSocial?.toLowerCase(),
+      data: (v) => v.data,
+      cliente: (v) => v.cliente?.nome?.toLowerCase(),
+      formaPagamento: (v) => v.formaPagamento,
+      comNota: (v) => v.comNota,
+      total: (v) => totalVenda(v),
+      lucro: (v) => v.lucroTotal ?? 0,
+    },
+    'data',
+    'desc'
+  );
 
   async function carregar() {
     const [vendasRes, clientesRes, produtosRes, empresasRes] = await Promise.all([
@@ -208,11 +231,15 @@ export default function Vendas() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Vendas</h1>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <Receipt className="w-6 h-6 text-slate-700" />
+          Vendas
+        </h1>
         <button
           onClick={abrirNovo}
-          className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800"
+          className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800 flex items-center gap-1.5"
         >
+          <Plus className="w-4 h-4" />
           Nova Venda
         </button>
       </div>
@@ -237,24 +264,21 @@ export default function Vendas() {
       <table className="w-full bg-white rounded shadow overflow-hidden">
         <thead className="bg-slate-100 text-left text-sm">
           <tr>
-            <th className="p-3">ID</th>
-            <th className="p-3">Empresa</th>
-            <th className="p-3">Data</th>
-            <th className="p-3">Cliente</th>
-            <th className="p-3">Forma Pagamento</th>
-            <th className="p-3">Nota Fiscal</th>
+            <SortableTh label="ID" sortKey="id" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Empresa" sortKey="empresa" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Data" sortKey="data" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Cliente" sortKey="cliente" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Forma Pagamento" sortKey="formaPagamento" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Nota Fiscal" sortKey="comNota" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
             <th className="p-3">Itens</th>
-            <th className="p-3">Total</th>
-            <th className="p-3">Lucro</th>
+            <SortableTh label="Total" sortKey="total" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Lucro" sortKey="lucro" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
             <th className="p-3 w-40">Ações</th>
           </tr>
         </thead>
         <tbody className="text-sm">
-          {lista.map((v) => {
-            const total = v.itens.reduce(
-              (acc, i) => acc + Number(i.quantidade) * Number(i.precoUnitario),
-              0
-            );
+          {dadosOrdenados.map((v) => {
+            const total = totalVenda(v);
             const lucro = v.lucroTotal ?? 0;
             const contaPaga = v.contasReceber?.some((cr) => cr.status === 'PAGO');
             return (
@@ -279,11 +303,12 @@ export default function Vendas() {
                 <td className={`p-3 font-medium ${lucro < 0 ? 'text-red-600' : 'text-green-700'}`}>
                   R$ {lucro.toFixed(2)}
                 </td>
-                <td className="p-3 space-x-2">
+                <td className="p-3 space-x-3">
                   <button
                     onClick={() => window.open(`/recibo/${v.id}`, '_blank')}
-                    className="text-blue-600 hover:underline"
+                    className="text-blue-600 hover:underline inline-flex items-center gap-1"
                   >
+                    <Printer className="w-3.5 h-3.5" />
                     Imprimir
                   </button>
                   {contaPaga ? (
@@ -292,14 +317,16 @@ export default function Vendas() {
                     <>
                       <button
                         onClick={() => abrirEdicao(v)}
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-600 hover:underline inline-flex items-center gap-1"
                       >
+                        <Pencil className="w-3.5 h-3.5" />
                         Editar
                       </button>
                       <button
                         onClick={() => excluir(v.id)}
-                        className="text-red-600 hover:underline"
+                        className="text-red-600 hover:underline inline-flex items-center gap-1"
                       >
+                        <Trash2 className="w-3.5 h-3.5" />
                         Excluir
                       </button>
                     </>
@@ -308,7 +335,7 @@ export default function Vendas() {
               </tr>
             );
           })}
-          {lista.length === 0 && (
+          {dadosOrdenados.length === 0 && (
             <tr>
               <td colSpan={10} className="p-3 text-center text-gray-400">
                 Nenhuma venda registrada

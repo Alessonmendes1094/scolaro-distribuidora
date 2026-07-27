@@ -1,12 +1,27 @@
 import { useEffect, useState } from 'react';
+import { Landmark, SlidersHorizontal, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import api from '../lib/api';
 import { formatarData } from '../lib/date';
 import Modal from '../components/Modal.jsx';
+import SortableTh from '../components/SortableTh.jsx';
+import { useSort } from '../lib/useSort';
 
 export default function Caixa() {
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [resumo, setResumo] = useState({ movimentos: [], totalEntradas: 0, totalSaidas: 0, saldo: 0 });
+
+  const { dadosOrdenados, sortKey, sortDir, requestSort } = useSort(
+    resumo.movimentos,
+    {
+      data: (m) => m.data,
+      tipo: (m) => m.tipo,
+      descricao: (m) => m.descricao?.toLowerCase(),
+      valor: (m) => Number(m.valor),
+    },
+    'data',
+    'desc'
+  );
   const [modalAberto, setModalAberto] = useState(false);
   const [saldoGeral, setSaldoGeral] = useState(0);
   const [valorAtual, setValorAtual] = useState('');
@@ -52,11 +67,15 @@ export default function Caixa() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Caixa</h1>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <Landmark className="w-6 h-6 text-slate-700" />
+          Caixa
+        </h1>
         <button
           onClick={abrirAjuste}
-          className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800"
+          className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800 flex items-center gap-1.5"
         >
+          <SlidersHorizontal className="w-4 h-4" />
           Ajustar Caixa
         </button>
       </div>
@@ -109,24 +128,29 @@ export default function Caixa() {
       <table className="w-full bg-white rounded shadow overflow-hidden">
         <thead className="bg-slate-100 text-left text-sm">
           <tr>
-            <th className="p-3">Data</th>
-            <th className="p-3">Tipo</th>
-            <th className="p-3">Descrição</th>
-            <th className="p-3">Valor</th>
+            <SortableTh label="Data" sortKey="data" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Tipo" sortKey="tipo" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Descrição" sortKey="descricao" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Valor" sortKey="valor" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
           </tr>
         </thead>
         <tbody className="text-sm">
-          {resumo.movimentos.map((m) => (
+          {dadosOrdenados.map((m) => (
             <tr key={m.id} className="border-t">
               <td className="p-3">{formatarData(m.data)}</td>
               <td className="p-3">
                 <span
                   className={
                     m.tipo === 'ENTRADA'
-                      ? 'text-green-700 font-medium'
-                      : 'text-red-700 font-medium'
+                      ? 'text-green-700 font-medium inline-flex items-center gap-1'
+                      : 'text-red-700 font-medium inline-flex items-center gap-1'
                   }
                 >
+                  {m.tipo === 'ENTRADA' ? (
+                    <ArrowDownCircle className="w-3.5 h-3.5" />
+                  ) : (
+                    <ArrowUpCircle className="w-3.5 h-3.5" />
+                  )}
                   {m.tipo}
                 </span>
               </td>
@@ -134,7 +158,7 @@ export default function Caixa() {
               <td className="p-3">R$ {Number(m.valor).toFixed(2)}</td>
             </tr>
           ))}
-          {resumo.movimentos.length === 0 && (
+          {dadosOrdenados.length === 0 && (
             <tr>
               <td colSpan={4} className="p-3 text-center text-gray-400">
                 Nenhum movimento no período

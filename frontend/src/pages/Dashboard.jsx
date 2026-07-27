@@ -12,6 +12,17 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import {
+  LayoutDashboard,
+  Receipt,
+  ShoppingCart,
+  TrendingUp,
+  Filter,
+  HandCoins,
+  Wallet,
+  ShieldAlert,
+  BarChart3,
+} from 'lucide-react';
 import api from '../lib/api';
 
 function primeiroDiaMes() {
@@ -57,19 +68,24 @@ export default function Dashboard() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-3">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <LayoutDashboard className="w-6 h-6 text-slate-700" />
+          Dashboard
+        </h1>
         <div className="flex gap-2">
           <button
             onClick={() => navigate('/vendas?nova=1')}
-            className="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800"
+            className="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800 flex items-center gap-1.5"
           >
-            + Nova Venda
+            <Receipt className="w-4 h-4" />
+            Nova Venda
           </button>
           <button
             onClick={() => navigate('/compras?nova=1')}
-            className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800"
+            className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800 flex items-center gap-1.5"
           >
-            + Nova Compra
+            <ShoppingCart className="w-4 h-4" />
+            Nova Compra
           </button>
         </div>
       </div>
@@ -110,8 +126,9 @@ export default function Dashboard() {
         </div>
         <button
           onClick={carregar}
-          className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800"
+          className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800 flex items-center gap-1.5"
         >
+          <Filter className="w-4 h-4" />
           Filtrar
         </button>
       </div>
@@ -119,15 +136,24 @@ export default function Dashboard() {
       <div className="text-sm font-semibold text-gray-500 mb-2">Movimento do Período</div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded shadow p-4">
-          <div className="text-sm text-gray-500">Total Vendido</div>
+          <div className="text-sm text-gray-500 flex items-center gap-1.5">
+            <Receipt className="w-4 h-4" />
+            Total Vendido
+          </div>
           <div className="text-2xl font-bold">R$ {dados.totalVendido.toFixed(2)}</div>
         </div>
         <div className="bg-white rounded shadow p-4">
-          <div className="text-sm text-gray-500">Total Comprado</div>
+          <div className="text-sm text-gray-500 flex items-center gap-1.5">
+            <ShoppingCart className="w-4 h-4" />
+            Total Comprado
+          </div>
           <div className="text-2xl font-bold">R$ {dados.totalComprado.toFixed(2)}</div>
         </div>
         <div className="bg-white rounded shadow p-4">
-          <div className="text-sm text-gray-500">Lucro</div>
+          <div className="text-sm text-gray-500 flex items-center gap-1.5">
+            <TrendingUp className="w-4 h-4" />
+            Lucro
+          </div>
           <div
             className={`text-2xl font-bold ${
               dados.lucroTotal < 0 ? 'text-red-600' : 'text-green-700'
@@ -141,7 +167,10 @@ export default function Dashboard() {
       <div className="text-sm font-semibold text-gray-500 mb-2">Pendências (todas as datas)</div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded shadow p-4">
-          <div className="text-sm font-medium text-gray-700 mb-3">Contas a Receber</div>
+          <div className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-1.5">
+            <HandCoins className="w-4 h-4" />
+            Contas a Receber
+          </div>
           <div className="grid grid-cols-3 gap-2 text-center sm:text-left">
             <div>
               <div className="text-xs text-gray-500">Em Aberto</div>
@@ -162,7 +191,10 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="bg-white rounded shadow p-4">
-          <div className="text-sm font-medium text-gray-700 mb-3">Contas a Pagar</div>
+          <div className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-1.5">
+            <Wallet className="w-4 h-4" />
+            Contas a Pagar
+          </div>
           <div className="grid grid-cols-3 gap-2 text-center sm:text-left">
             <div>
               <div className="text-xs text-gray-500">Em Aberto</div>
@@ -183,7 +215,10 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="bg-gray-800 text-white rounded shadow p-4">
-          <div className="text-sm font-medium mb-3">Perdas (Inadimplência)</div>
+          <div className="text-sm font-medium mb-3 flex items-center gap-1.5">
+            <ShieldAlert className="w-4 h-4" />
+            Perdas (Inadimplência)
+          </div>
           <div className="text-2xl font-bold">R$ {dados.perdas.total.toFixed(2)}</div>
           <div className="text-xs text-gray-300 mt-1">
             {dados.perdas.quantidade}{' '}
@@ -200,7 +235,10 @@ export default function Dashboard() {
       </div>
 
       <div className="bg-white rounded shadow p-4 mb-6">
-        <div className="text-sm text-gray-500 mb-2">Vendas, Compras e Lucro por Dia</div>
+        <div className="text-sm text-gray-500 mb-2 flex items-center gap-1.5">
+          <BarChart3 className="w-4 h-4" />
+          Vendas, Compras e Lucro por Dia
+        </div>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={dados.vendasPorDia}>
             <CartesianGrid strokeDasharray="3 3" />
