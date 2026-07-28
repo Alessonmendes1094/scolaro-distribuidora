@@ -27,6 +27,8 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@scolaro.com}
       ADMIN_SENHA: ${ADMIN_SENHA:-admin123}
       RUN_SEED: "true"
+    volumes:
+      - backend_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,3 +48,4 @@ services:
 
 volumes:
   postgres_data:
+  backend_uploads:

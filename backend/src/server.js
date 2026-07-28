@@ -1,10 +1,13 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 
 const authMiddleware = require('./middleware/auth');
+const { uploadsDir } = require('./lib/upload');
 
 const authRoutes = require('./routes/auth.routes');
+const configuracoesRoutes = require('./routes/configuracoes.routes');
 const empresasRoutes = require('./routes/empresas.routes');
 const fornecedoresRoutes = require('./routes/fornecedores.routes');
 const produtosRoutes = require('./routes/produtos.routes');
@@ -24,8 +27,13 @@ app.use(express.json());
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
+// Arquivos enviados (ex: logo) — servidos publicamente para uso em <img>,
+// inclusive nos recibos impressos.
+app.use('/uploads', express.static(uploadsDir));
+
 app.use('/auth', authRoutes);
 
+app.use('/configuracoes', authMiddleware, configuracoesRoutes);
 app.use('/empresas', authMiddleware, empresasRoutes);
 app.use('/fornecedores', authMiddleware, fornecedoresRoutes);
 app.use('/produtos', authMiddleware, produtosRoutes);

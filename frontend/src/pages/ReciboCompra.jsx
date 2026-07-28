@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import api from '../lib/api';
 import { formatarData } from '../lib/date';
 import { FORMA_PAGAMENTO_LABEL } from '../lib/formaPagamento';
+import Logo from '../components/Logo.jsx';
 
 export default function ReciboCompra() {
   const { compraId } = useParams();
@@ -38,7 +39,8 @@ export default function ReciboCompra() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-black p-8 max-w-2xl mx-auto text-sm">
+    <div className="min-h-screen bg-white text-black p-4 max-w-2xl mx-auto text-xs recibo-meia-folha">
+      <style>{`@media print { @page { size: 210mm 148.5mm; margin: 8mm; } }`}</style>
       <div className="no-print flex justify-end mb-4">
         <button
           onClick={handleImprimir}
@@ -48,8 +50,8 @@ export default function ReciboCompra() {
         </button>
       </div>
 
-      <div className="flex items-center gap-4 border-b-2 border-black pb-4 mb-4">
-        <img src="/logo-scolaro.png" alt="Scolaro Distribuidora" className="h-20 w-auto" />
+      <div className="flex items-center gap-3 border-b-2 border-black pb-2 mb-2">
+        <Logo className="h-12 w-auto" />
         <div>
           <h1 className="text-xl font-bold">Comprovante de Compra #{compra.id}</h1>
           <p className="text-gray-600">Nota Fiscal: {compra.comNota ? 'Sim' : 'Não'}</p>
@@ -111,7 +113,7 @@ export default function ReciboCompra() {
         </div>
       </div>
 
-      <div className="mt-12 pt-4 border-t border-gray-300 text-xs text-gray-500 text-center">
+      <div className="mt-3 pt-2 border-t border-gray-300 text-[10px] text-gray-500 text-center">
         Documento gerado em {new Date().toLocaleString('pt-BR')} — sem valor fiscal.
       </div>
     </div>

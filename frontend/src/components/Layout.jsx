@@ -12,6 +12,7 @@ import {
   HandCoins,
   Landmark,
   FileBarChart,
+  Settings,
   Menu,
   X,
   LogOut,
@@ -30,6 +31,7 @@ const links = [
   { to: '/contas-receber', label: 'Contas a Receber', icon: HandCoins },
   { to: '/caixa', label: 'Caixa', icon: Landmark },
   { to: '/relatorios', label: 'Relatórios', icon: FileBarChart },
+  { to: '/configuracoes', label: 'Configurações', icon: Settings },
 ];
 
 export default function Layout() {

@@ -5,6 +5,7 @@ import { formatarData } from '../lib/date';
 import { baixarPdf } from '../lib/pdf';
 import { STATUS_LABEL, STATUS_BADGE } from '../lib/status';
 import { FORMA_PAGAMENTO_LABEL } from '../lib/formaPagamento';
+import Logo from '../components/Logo.jsx';
 
 function StatusPendenciaBadge({ status, diasAtraso }) {
   return (
@@ -153,7 +154,7 @@ export default function RelatorioImpressao() {
       </div>
 
       <div className="flex items-center gap-4 border-b-2 border-black pb-4 mb-4">
-        <img src="/logo-scolaro.png" alt="Scolaro Distribuidora" className="h-16 w-auto" />
+        <Logo className="h-16 w-auto" />
         <div>
           <h1 className="text-xl font-bold">{TITULOS[tipo] || 'Relatório'}</h1>
           {clienteNomeFiltro && <p className="text-gray-600">Cliente: {clienteNomeFiltro}</p>}

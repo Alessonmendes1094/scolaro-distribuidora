@@ -13,6 +13,7 @@ import ContasPagar from './pages/ContasPagar.jsx';
 import ContasReceber from './pages/ContasReceber.jsx';
 import Caixa from './pages/Caixa.jsx';
 import Relatorios from './pages/Relatorios.jsx';
+import Configuracoes from './pages/Configuracoes.jsx';
 import Recibo from './pages/Recibo.jsx';
 import ReciboCompra from './pages/ReciboCompra.jsx';
 import ReciboPagamento from './pages/ReciboPagamento.jsx';
@@ -79,6 +80,7 @@ export default function App() {
         <Route path="contas-receber" element={<ContasReceber />} />
         <Route path="caixa" element={<Caixa />} />
         <Route path="relatorios" element={<Relatorios />} />
+        <Route path="configuracoes" element={<Configuracoes />} />
       </Route>
     </Routes>
   );
