@@ -1,0 +1,42 @@
+databases:
+  - name: scolaro-db
+    plan: free
+    databaseName: scolaro_db
+    user: scolaro
+
+services:
+  - type: web
+    name: scolaro-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: scolaro-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@scolaro.com
+      - key: ADMIN_SENHA
+        sync: false
+      - key: RUN_SEED
+        value: "true"
+      - key: PORT
+        value: "3333"
+
+  - type: web
+    name: scolaro-frontend
+    runtime: static
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
