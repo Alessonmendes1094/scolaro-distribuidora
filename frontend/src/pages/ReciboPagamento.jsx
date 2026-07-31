@@ -38,8 +38,9 @@ export default function ReciboPagamento() {
             width: 210mm;
             min-height: 297mm;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
+            padding-top: 10mm;
           }
           .recibo-print-content {
             width: 180mm;
