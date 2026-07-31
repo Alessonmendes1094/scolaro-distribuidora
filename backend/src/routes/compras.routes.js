@@ -43,6 +43,13 @@ router.post('/', async (req, res) => {
       0
     );
 
+    const produtosIds = itens.map((i) => Number(i.produtoId));
+    const produtos = await prisma.produto.findMany({ where: { id: { in: produtosIds } } });
+    const unidadesPorCaixaPorProduto = {};
+    for (const p of produtos) {
+      unidadesPorCaixaPorProduto[p.id] = p.unidadesPorCaixa;
+    }
+
     const compra = await prisma.$transaction(async (tx) => {
       const dataVencimento =
         !FORMAS_IMEDIATAS.includes(forma)
@@ -63,6 +70,7 @@ router.post('/', async (req, res) => {
               produtoId: Number(item.produtoId),
               quantidade: item.quantidade,
               custoUnitario: item.custoUnitario,
+              unidadesPorCaixa: unidadesPorCaixaPorProduto[Number(item.produtoId)] ?? null,
             })),
           },
         },
@@ -136,6 +144,13 @@ router.put('/:id', async (req, res) => {
       0
     );
 
+    const produtosIds = itens.map((i) => Number(i.produtoId));
+    const produtos = await prisma.produto.findMany({ where: { id: { in: produtosIds } } });
+    const unidadesPorCaixaPorProduto = {};
+    for (const p of produtos) {
+      unidadesPorCaixaPorProduto[p.id] = p.unidadesPorCaixa;
+    }
+
     const compra = await prisma.$transaction(async (tx) => {
       for (const itemAntigo of compraExistente.itens) {
         await tx.produto.update({
@@ -168,6 +183,7 @@ router.put('/:id', async (req, res) => {
               produtoId: Number(item.produtoId),
               quantidade: item.quantidade,
               custoUnitario: item.custoUnitario,
+              unidadesPorCaixa: unidadesPorCaixaPorProduto[Number(item.produtoId)] ?? null,
             })),
           },
         },

@@ -8,12 +8,13 @@ import CompraDetalheModal from '../components/CompraDetalheModal.jsx';
 import SortableTh from '../components/SortableTh.jsx';
 import { useSort } from '../lib/useSort';
 import { FORMA_PAGAMENTO_LABEL, FORMA_PAGAMENTO_OPCOES, FORMAS_PAGAMENTO_IMEDIATAS } from '../lib/formaPagamento';
+import { unidadeParaCaixa, caixaParaUnidade } from '../lib/caixa';
 
 function totalCompra(c) {
   return c.itens.reduce((acc, i) => acc + Number(i.quantidade) * Number(i.custoUnitario), 0);
 }
 
-const ITEM_VAZIO = { produtoId: '', quantidade: '', custoUnitario: '' };
+const ITEM_VAZIO = { produtoId: '', quantidade: '', quantidadeCaixa: '', custoUnitario: '' };
 
 export default function Compras() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -90,6 +91,7 @@ export default function Compras() {
       compra.itens.map((i) => ({
         produtoId: String(i.produtoId),
         quantidade: Number(i.quantidade),
+        quantidadeCaixa: unidadeParaCaixa(i.quantidade, i.produto?.unidadesPorCaixa),
         custoUnitario: Number(i.custoUnitario),
       }))
     );
@@ -110,6 +112,30 @@ export default function Compras() {
   function atualizarItem(index, campo, valor) {
     const novosItens = [...itens];
     novosItens[index][campo] = valor;
+    setItens(novosItens);
+  }
+
+  function produtoDoItem(item) {
+    return produtos.find((p) => String(p.id) === String(item.produtoId));
+  }
+
+  function atualizarQuantidadeUnidade(index, valor) {
+    const novosItens = [...itens];
+    novosItens[index].quantidade = valor;
+    novosItens[index].quantidadeCaixa = unidadeParaCaixa(
+      valor,
+      produtoDoItem(novosItens[index])?.unidadesPorCaixa
+    );
+    setItens(novosItens);
+  }
+
+  function atualizarQuantidadeCaixa(index, valor) {
+    const novosItens = [...itens];
+    novosItens[index].quantidadeCaixa = valor;
+    novosItens[index].quantidade = caixaParaUnidade(
+      valor,
+      produtoDoItem(novosItens[index])?.unidadesPorCaixa
+    );
     setItens(novosItens);
   }
 
@@ -308,48 +334,70 @@ export default function Compras() {
           )}
 
           <div className="mb-2 font-medium text-sm">Itens</div>
-          {itens.map((item, index) => (
-            <div key={index} className="grid grid-cols-12 gap-2 mb-2 items-center">
-              <select
-                className="col-span-5 border rounded px-2 py-1.5 text-sm"
-                value={item.produtoId}
-                onChange={(e) => atualizarItem(index, 'produtoId', e.target.value)}
-                required
-              >
-                <option value="">Produto...</option>
-                {produtos.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nome}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                step="0.001"
-                placeholder="Qtd"
-                className="col-span-3 border rounded px-2 py-1.5 text-sm"
-                value={item.quantidade}
-                onChange={(e) => atualizarItem(index, 'quantidade', e.target.value)}
-                required
-              />
-              <input
-                type="number"
-                step="0.01"
-                placeholder="Custo Unit."
-                className="col-span-3 border rounded px-2 py-1.5 text-sm"
-                value={item.custoUnitario}
-                onChange={(e) => atualizarItem(index, 'custoUnitario', e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => removerItem(index)}
-                className="col-span-1 text-red-600"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
+          {itens.map((item, index) => {
+            const produto = produtoDoItem(item);
+            return (
+              <div key={index} className="mb-2">
+                <div className="grid grid-cols-12 gap-2 items-center">
+                  <select
+                    className="col-span-4 border rounded px-2 py-1.5 text-sm"
+                    value={item.produtoId}
+                    onChange={(e) => atualizarItem(index, 'produtoId', e.target.value)}
+                    required
+                  >
+                    <option value="">Produto...</option>
+                    {produtos.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nome}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    step="0.001"
+                    placeholder={produto ? `Qtd (${produto.unidade})` : 'Qtd'}
+                    title={produto ? `Quantidade em ${produto.unidade}` : ''}
+                    className="col-span-2 border rounded px-2 py-1.5 text-sm"
+                    value={item.quantidade}
+                    onChange={(e) => atualizarQuantidadeUnidade(index, e.target.value)}
+                    required
+                  />
+                  <input
+                    type="number"
+                    step="0.001"
+                    placeholder="Qtd (Cx)"
+                    title="Quantidade em caixas"
+                    disabled={!produto?.unidadesPorCaixa}
+                    className="col-span-2 border rounded px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-400"
+                    value={item.quantidadeCaixa}
+                    onChange={(e) => atualizarQuantidadeCaixa(index, e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="Custo Unit."
+                    className="col-span-3 border rounded px-2 py-1.5 text-sm"
+                    value={item.custoUnitario}
+                    onChange={(e) => atualizarItem(index, 'custoUnitario', e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removerItem(index)}
+                    className="col-span-1 text-red-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {produto?.unidadesPorCaixa && (
+                  <div className="text-xs text-gray-500 mt-1 pl-1">
+                    1 caixa = {Number(produto.unidadesPorCaixa)} {produto.unidade} · Custo da
+                    caixa: R$ {(Number(item.custoUnitario || 0) * Number(produto.unidadesPorCaixa)).toFixed(2)}
+                  </div>
+                )}
+              </div>
+            );
+          })}
           <button
             type="button"
             onClick={adicionarItem}

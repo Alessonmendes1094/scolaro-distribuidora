@@ -59,7 +59,7 @@ router.post('/:id/ajuste-estoque', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { nome, unidade, estoqueAtual, precoVenda } = req.body;
+  const { nome, unidade, estoqueAtual, precoVenda, unidadesPorCaixa } = req.body;
   if (!nome || !unidade || precoVenda === undefined) {
     return res.status(400).json({ error: 'Nome, unidade e preço de venda são obrigatórios' });
   }
@@ -69,16 +69,17 @@ router.post('/', async (req, res) => {
       unidade,
       estoqueAtual: estoqueAtual ?? 0,
       precoVenda,
+      unidadesPorCaixa: unidadesPorCaixa || null,
     },
   });
   res.status(201).json(produto);
 });
 
 router.put('/:id', async (req, res) => {
-  const { nome, unidade, estoqueAtual, precoVenda } = req.body;
+  const { nome, unidade, estoqueAtual, precoVenda, unidadesPorCaixa } = req.body;
   const produto = await prisma.produto.update({
     where: { id: Number(req.params.id) },
-    data: { nome, unidade, estoqueAtual, precoVenda },
+    data: { nome, unidade, estoqueAtual, precoVenda, unidadesPorCaixa: unidadesPorCaixa || null },
   });
   res.json(produto);
 });

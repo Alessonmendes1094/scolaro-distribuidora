@@ -4,8 +4,9 @@ import api from '../lib/api';
 import Modal from '../components/Modal.jsx';
 import SortableTh from '../components/SortableTh.jsx';
 import { useSort } from '../lib/useSort';
+import { unidadeParaCaixa, caixaParaUnidade } from '../lib/caixa';
 
-const FORM_INICIAL = { nome: '', unidade: '', estoqueAtual: 0, precoVenda: 0 };
+const FORM_INICIAL = { nome: '', unidade: '', estoqueAtual: 0, precoVenda: 0, unidadesPorCaixa: '' };
 
 export default function Produtos() {
   const [lista, setLista] = useState([]);
@@ -20,6 +21,7 @@ export default function Produtos() {
       unidade: (p) => p.unidade,
       estoqueAtual: (p) => Number(p.estoqueAtual),
       precoVenda: (p) => Number(p.precoVenda),
+      unidadesPorCaixa: (p) => Number(p.unidadesPorCaixa || 0),
       createdAt: (p) => p.createdAt,
     },
     'createdAt',
@@ -28,6 +30,7 @@ export default function Produtos() {
   const [modalAjusteAberto, setModalAjusteAberto] = useState(false);
   const [produtoAjuste, setProdutoAjuste] = useState(null);
   const [novaQuantidade, setNovaQuantidade] = useState('');
+  const [novaQuantidadeCaixa, setNovaQuantidadeCaixa] = useState('');
   const [motivoAjuste, setMotivoAjuste] = useState('');
   const [erroAjuste, setErroAjuste] = useState('');
 
@@ -52,6 +55,7 @@ export default function Produtos() {
       unidade: produto.unidade,
       estoqueAtual: produto.estoqueAtual,
       precoVenda: produto.precoVenda,
+      unidadesPorCaixa: produto.unidadesPorCaixa ?? '',
     });
     setEditandoId(produto.id);
     setModalAberto(true);
@@ -63,6 +67,7 @@ export default function Produtos() {
       ...form,
       estoqueAtual: Number(form.estoqueAtual),
       precoVenda: Number(form.precoVenda),
+      unidadesPorCaixa: form.unidadesPorCaixa ? Number(form.unidadesPorCaixa) : null,
     };
     if (editandoId) {
       await api.put(`/produtos/${editandoId}`, payload);
@@ -82,9 +87,20 @@ export default function Produtos() {
   function abrirAjusteEstoque(produto) {
     setProdutoAjuste(produto);
     setNovaQuantidade(Number(produto.estoqueAtual));
+    setNovaQuantidadeCaixa(unidadeParaCaixa(produto.estoqueAtual, produto.unidadesPorCaixa));
     setMotivoAjuste('');
     setErroAjuste('');
     setModalAjusteAberto(true);
+  }
+
+  function alterarQuantidadeUnidade(valor) {
+    setNovaQuantidade(valor);
+    setNovaQuantidadeCaixa(unidadeParaCaixa(valor, produtoAjuste?.unidadesPorCaixa));
+  }
+
+  function alterarQuantidadeCaixa(valor) {
+    setNovaQuantidadeCaixa(valor);
+    setNovaQuantidade(caixaParaUnidade(valor, produtoAjuste?.unidadesPorCaixa));
   }
 
   async function salvarAjusteEstoque(e) {
@@ -126,6 +142,7 @@ export default function Produtos() {
             <SortableTh label="Unidade" sortKey="unidade" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
             <SortableTh label="Estoque" sortKey="estoqueAtual" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
             <SortableTh label="Preço de Venda" sortKey="precoVenda" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
+            <SortableTh label="Un. por Caixa" sortKey="unidadesPorCaixa" currentKey={sortKey} currentDir={sortDir} onSort={requestSort} />
             <th className="p-3 w-64">Ações</th>
           </tr>
         </thead>
@@ -136,6 +153,9 @@ export default function Produtos() {
               <td className="p-3">{p.unidade}</td>
               <td className="p-3">{Number(p.estoqueAtual)}</td>
               <td className="p-3">R$ {Number(p.precoVenda).toFixed(2)}</td>
+              <td className="p-3">
+                {p.unidadesPorCaixa ? `${Number(p.unidadesPorCaixa)} ${p.unidade}` : '—'}
+              </td>
               <td className="p-3 space-x-3">
                 <button onClick={() => abrirEdicao(p)} className="text-blue-600 hover:underline inline-flex items-center gap-1">
                   <Pencil className="w-3.5 h-3.5" />
@@ -157,7 +177,7 @@ export default function Produtos() {
           ))}
           {dadosOrdenados.length === 0 && (
             <tr>
-              <td colSpan={5} className="p-3 text-center text-gray-400">
+              <td colSpan={6} className="p-3 text-center text-gray-400">
                 Nenhum produto cadastrado
               </td>
             </tr>
@@ -199,10 +219,19 @@ export default function Produtos() {
           <input
             type="number"
             step="0.01"
-            className="w-full border rounded px-3 py-2 mb-6"
+            className="w-full border rounded px-3 py-2 mb-4"
             value={form.precoVenda}
             onChange={(e) => setForm({ ...form, precoVenda: e.target.value })}
             required
+          />
+          <label className="block text-sm mb-1">Unidades por Caixa (opcional)</label>
+          <input
+            type="number"
+            step="0.001"
+            placeholder="Ex: 20 (deixe em branco se não vender em caixa)"
+            className="w-full border rounded px-3 py-2 mb-6"
+            value={form.unidadesPorCaixa}
+            onChange={(e) => setForm({ ...form, unidadesPorCaixa: e.target.value })}
           />
           <button
             type="submit"
@@ -229,15 +258,32 @@ export default function Produtos() {
               deste valor.
             </div>
           )}
-          <label className="block text-sm mb-1">Nova quantidade em estoque</label>
+          <label className="block text-sm mb-1">
+            Nova quantidade em estoque {produtoAjuste ? `(${produtoAjuste.unidade})` : ''}
+          </label>
           <input
             type="number"
             step="0.001"
             className="w-full border rounded px-3 py-2 mb-4"
             value={novaQuantidade}
-            onChange={(e) => setNovaQuantidade(e.target.value)}
+            onChange={(e) => alterarQuantidadeUnidade(e.target.value)}
             required
           />
+          {produtoAjuste?.unidadesPorCaixa && (
+            <>
+              <label className="block text-sm mb-1">
+                Nova quantidade em caixas (1 caixa = {Number(produtoAjuste.unidadesPorCaixa)}{' '}
+                {produtoAjuste.unidade})
+              </label>
+              <input
+                type="number"
+                step="0.001"
+                className="w-full border rounded px-3 py-2 mb-4"
+                value={novaQuantidadeCaixa}
+                onChange={(e) => alterarQuantidadeCaixa(e.target.value)}
+              />
+            </>
+          )}
           <label className="block text-sm mb-1">Motivo (opcional)</label>
           <input
             className="w-full border rounded px-3 py-2 mb-6"

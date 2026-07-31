@@ -29,9 +29,25 @@ export default function ReciboPagamento() {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-black p-4 max-w-2xl mx-auto text-xs recibo-meia-folha">
-      <style>{`@media print { @page { size: 210mm 148.5mm; margin: 8mm; } }`}</style>
-      <div className="no-print flex justify-end mb-4">
+    <div className="min-h-screen bg-white text-black text-xs">
+      <style>{`
+        @media print {
+          @page { size: A4 portrait; margin: 0; }
+          body { margin: 0; }
+          .recibo-print-page {
+            width: 210mm;
+            min-height: 297mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .recibo-print-content {
+            width: 180mm;
+            max-height: 148mm;
+          }
+        }
+      `}</style>
+      <div className="no-print flex justify-end p-4">
         <button
           onClick={() => window.print()}
           className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800"
@@ -40,61 +56,65 @@ export default function ReciboPagamento() {
         </button>
       </div>
 
-      <div className="flex items-center gap-3 border-b-2 border-black pb-2 mb-2">
-        <Logo className="h-12 w-auto" />
-        <div>
-          <h1 className="text-xl font-bold">Recibo de Pagamento</h1>
-          <p className="text-gray-600">Código da baixa: {baixa.codigo}</p>
-        </div>
-      </div>
+      <div className="recibo-print-page">
+        <div className="recibo-print-content max-w-2xl mx-auto p-4">
+          <div className="flex items-center gap-3 border-b-2 border-black pb-2 mb-2">
+            <Logo className="h-12 w-auto" />
+            <div>
+              <h1 className="text-xl font-bold">Recibo de Pagamento</h1>
+              <p className="text-gray-600">Código da baixa: {baixa.codigo}</p>
+            </div>
+          </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div>
-          <div className="font-semibold">Cliente(s)</div>
-          <div>{clientesUnicos.join(', ')}</div>
-        </div>
-        <div className="text-right">
-          <div className="font-semibold">Data do Recebimento</div>
-          <div>{formatarData(baixa.data)}</div>
-        </div>
-      </div>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <div className="font-semibold">Cliente(s)</div>
+              <div>{clientesUnicos.join(', ')}</div>
+            </div>
+            <div className="text-right">
+              <div className="font-semibold">Data do Recebimento</div>
+              <div>{formatarData(baixa.data)}</div>
+            </div>
+          </div>
 
-      <table className="w-full border-collapse mb-4">
-        <thead>
-          <tr className="border-b-2 border-black text-left">
-            <th className="py-2">Cliente</th>
-            <th className="py-2">Venda</th>
-            <th className="py-2">Empresa</th>
-            <th className="py-2 text-right">Valor Recebido</th>
-          </tr>
-        </thead>
-        <tbody>
-          {baixa.contas.map((conta) => (
-            <tr key={conta.id} className="border-b border-gray-300">
-              <td className="py-2">{conta.venda.cliente.nome}</td>
-              <td className="py-2">#{conta.vendaId}</td>
-              <td className="py-2">{conta.venda.empresa?.razaoSocial}</td>
-              <td className="py-2 text-right">R$ {Number(conta.valor).toFixed(2)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          <table className="w-full border-collapse mb-4">
+            <thead>
+              <tr className="border-b-2 border-black text-left">
+                <th className="py-2">Cliente</th>
+                <th className="py-2">Venda</th>
+                <th className="py-2">Empresa</th>
+                <th className="py-2 text-right">Valor Recebido</th>
+              </tr>
+            </thead>
+            <tbody>
+              {baixa.contas.map((conta) => (
+                <tr key={conta.id} className="border-b border-gray-300">
+                  <td className="py-2">{conta.venda.cliente.nome}</td>
+                  <td className="py-2">#{conta.vendaId}</td>
+                  <td className="py-2">{conta.venda.empresa?.razaoSocial}</td>
+                  <td className="py-2 text-right">R$ {Number(conta.valor).toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-      <div className="flex justify-end">
-        <div className="text-right">
-          <div className="text-gray-600">Total Recebido</div>
-          <div className="text-2xl font-bold">R$ {Number(baixa.valorTotal).toFixed(2)}</div>
+          <div className="flex justify-end">
+            <div className="text-right">
+              <div className="text-gray-600">Total Recebido</div>
+              <div className="text-2xl font-bold">R$ {Number(baixa.valorTotal).toFixed(2)}</div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-center">
+            <div className="w-64 text-center">
+              <div className="border-t border-black pt-1">Assinatura</div>
+            </div>
+          </div>
+
+          <div className="mt-3 pt-2 border-t border-gray-300 text-[10px] text-gray-500 text-center">
+            Documento gerado em {new Date().toLocaleString('pt-BR')} — sem valor fiscal.
+          </div>
         </div>
-      </div>
-
-      <div className="mt-6 flex justify-center">
-        <div className="w-64 text-center">
-          <div className="border-t border-black pt-1">Assinatura</div>
-        </div>
-      </div>
-
-      <div className="mt-3 pt-2 border-t border-gray-300 text-[10px] text-gray-500 text-center">
-        Documento gerado em {new Date().toLocaleString('pt-BR')} — sem valor fiscal.
       </div>
     </div>
   );

@@ -110,6 +110,11 @@ router.post('/', async (req, res) => {
         : null;
     }
 
+    const unidadesPorCaixaPorProduto = {};
+    for (const p of produtos) {
+      unidadesPorCaixaPorProduto[p.id] = p.unidadesPorCaixa;
+    }
+
     const venda = await prisma.$transaction(async (tx) => {
       const novaVenda = await tx.venda.create({
         data: {
@@ -124,6 +129,7 @@ router.post('/', async (req, res) => {
               quantidade: item.quantidade,
               precoUnitario: item.precoUnitario,
               custoUnitario: custosPorProduto[Number(item.produtoId)],
+              unidadesPorCaixa: unidadesPorCaixaPorProduto[Number(item.produtoId)] ?? null,
             })),
           },
         },
@@ -230,6 +236,11 @@ router.put('/:id', async (req, res) => {
         : null;
     }
 
+    const unidadesPorCaixaPorProduto = {};
+    for (const p of produtos) {
+      unidadesPorCaixaPorProduto[p.id] = p.unidadesPorCaixa;
+    }
+
     const venda = await prisma.$transaction(async (tx) => {
       for (const itemAntigo of vendaExistente.itens) {
         await tx.produto.update({
@@ -256,6 +267,7 @@ router.put('/:id', async (req, res) => {
               quantidade: item.quantidade,
               precoUnitario: item.precoUnitario,
               custoUnitario: custosPorProduto[Number(item.produtoId)],
+              unidadesPorCaixa: unidadesPorCaixaPorProduto[Number(item.produtoId)] ?? null,
             })),
           },
         },

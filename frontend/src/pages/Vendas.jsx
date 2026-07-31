@@ -8,8 +8,9 @@ import VendaDetalheModal from '../components/VendaDetalheModal.jsx';
 import SortableTh from '../components/SortableTh.jsx';
 import { useSort } from '../lib/useSort';
 import { FORMA_PAGAMENTO_LABEL, FORMA_PAGAMENTO_OPCOES, FORMAS_PAGAMENTO_IMEDIATAS } from '../lib/formaPagamento';
+import { unidadeParaCaixa, caixaParaUnidade } from '../lib/caixa';
 
-const ITEM_VAZIO = { produtoId: '', quantidade: '', precoUnitario: '', custoUnitario: null };
+const ITEM_VAZIO = { produtoId: '', quantidade: '', quantidadeCaixa: '', precoUnitario: '', custoUnitario: null };
 
 function totalVenda(v) {
   return v.itens.reduce((acc, i) => acc + Number(i.quantidade) * Number(i.precoUnitario), 0);
@@ -114,6 +115,7 @@ export default function Vendas() {
       venda.itens.map((i) => ({
         produtoId: String(i.produtoId),
         quantidade: Number(i.quantidade),
+        quantidadeCaixa: unidadeParaCaixa(i.quantidade, i.produto?.unidadesPorCaixa),
         precoUnitario: Number(i.precoUnitario),
         custoUnitario: i.custoUnitario !== null ? Number(i.custoUnitario) : null,
       }))
@@ -143,12 +145,16 @@ export default function Vendas() {
 
   async function usarItensDaUltimaVenda() {
     if (!ultimaVenda) return;
-    const novosItens = ultimaVenda.itens.map((i) => ({
-      produtoId: String(i.produtoId),
-      quantidade: Number(i.quantidade),
-      precoUnitario: Number(i.precoUnitario),
-      custoUnitario: null,
-    }));
+    const novosItens = ultimaVenda.itens.map((i) => {
+      const produto = produtos.find((p) => String(p.id) === String(i.produtoId));
+      return {
+        produtoId: String(i.produtoId),
+        quantidade: Number(i.quantidade),
+        quantidadeCaixa: unidadeParaCaixa(i.quantidade, produto?.unidadesPorCaixa),
+        precoUnitario: Number(i.precoUnitario),
+        custoUnitario: null,
+      };
+    });
     setItens(novosItens);
 
     const custos = await Promise.all(
@@ -168,6 +174,30 @@ export default function Vendas() {
     setItens(novosItens);
   }
 
+  function produtoDoItem(item) {
+    return produtos.find((p) => String(p.id) === String(item.produtoId));
+  }
+
+  function atualizarQuantidadeUnidade(index, valor) {
+    const novosItens = [...itens];
+    novosItens[index].quantidade = valor;
+    novosItens[index].quantidadeCaixa = unidadeParaCaixa(
+      valor,
+      produtoDoItem(novosItens[index])?.unidadesPorCaixa
+    );
+    setItens(novosItens);
+  }
+
+  function atualizarQuantidadeCaixa(index, valor) {
+    const novosItens = [...itens];
+    novosItens[index].quantidadeCaixa = valor;
+    novosItens[index].quantidade = caixaParaUnidade(
+      valor,
+      produtoDoItem(novosItens[index])?.unidadesPorCaixa
+    );
+    setItens(novosItens);
+  }
+
   function adicionarItem() {
     setItens([...itens, { ...ITEM_VAZIO }]);
   }
@@ -182,6 +212,10 @@ export default function Vendas() {
     novosItens[index].produtoId = produtoId;
     novosItens[index].precoUnitario = produto ? Number(produto.precoVenda) : '';
     novosItens[index].custoUnitario = null;
+    novosItens[index].quantidadeCaixa = unidadeParaCaixa(
+      novosItens[index].quantidade,
+      produto?.unidadesPorCaixa
+    );
     setItens(novosItens);
 
     if (!produtoId) return;
@@ -458,6 +492,7 @@ export default function Vendas() {
 
           <div className="mb-2 font-medium text-sm">Itens</div>
           {itens.map((item, index) => {
+            const produto = produtoDoItem(item);
             const temCusto = item.custoUnitario !== null && item.custoUnitario !== undefined;
             const lucroUnitario = temCusto
               ? Number(item.precoUnitario || 0) - Number(item.custoUnitario)
@@ -468,7 +503,7 @@ export default function Vendas() {
               <div key={index} className="mb-2">
                 <div className="grid grid-cols-12 gap-2 items-center">
                   <select
-                    className="col-span-5 border rounded px-2 py-1.5 text-sm"
+                    className="col-span-4 border rounded px-2 py-1.5 text-sm"
                     value={item.produtoId}
                     onChange={(e) => selecionarProduto(index, e.target.value)}
                     required
@@ -483,11 +518,22 @@ export default function Vendas() {
                   <input
                     type="number"
                     step="0.001"
-                    placeholder="Qtd"
-                    className="col-span-3 border rounded px-2 py-1.5 text-sm"
+                    placeholder={produto ? `Qtd (${produto.unidade})` : 'Qtd'}
+                    title={produto ? `Quantidade em ${produto.unidade}` : ''}
+                    className="col-span-2 border rounded px-2 py-1.5 text-sm"
                     value={item.quantidade}
-                    onChange={(e) => atualizarItem(index, 'quantidade', e.target.value)}
+                    onChange={(e) => atualizarQuantidadeUnidade(index, e.target.value)}
                     required
+                  />
+                  <input
+                    type="number"
+                    step="0.001"
+                    placeholder="Qtd (Cx)"
+                    title="Quantidade em caixas"
+                    disabled={!produto?.unidadesPorCaixa}
+                    className="col-span-2 border rounded px-2 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-400"
+                    value={item.quantidadeCaixa}
+                    onChange={(e) => atualizarQuantidadeCaixa(index, e.target.value)}
                   />
                   <input
                     type="number"
@@ -508,6 +554,13 @@ export default function Vendas() {
                 </div>
                 {item.produtoId && (
                   <div className="text-xs text-gray-500 mt-1 pl-1">
+                    {produto?.unidadesPorCaixa && (
+                      <div>
+                        1 caixa = {Number(produto.unidadesPorCaixa)} {produto.unidade} · Preço da
+                        caixa: R${' '}
+                        {(Number(item.precoUnitario || 0) * Number(produto.unidadesPorCaixa)).toFixed(2)}
+                      </div>
+                    )}
                     {temCusto ? (
                       <>
                         Custo última compra: R$ {Number(item.custoUnitario).toFixed(2)} — Lucro

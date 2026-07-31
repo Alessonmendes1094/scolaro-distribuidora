@@ -67,15 +67,16 @@ model Fornecedor {
 }
 
 model Produto {
-  id            Int           @id @default(autoincrement())
-  nome          String
-  unidade       String
-  estoqueAtual  Decimal       @default(0) @db.Decimal(12, 3)
-  precoVenda    Decimal       @db.Decimal(12, 2)
-  createdAt     DateTime      @default(now())
-  itensCompra   ItemCompra[]
-  itensVenda    ItemVenda[]
-  ajustes       AjusteEstoque[]
+  id               Int             @id @default(autoincrement())
+  nome             String
+  unidade          String
+  estoqueAtual     Decimal         @default(0) @db.Decimal(12, 3)
+  precoVenda       Decimal         @db.Decimal(12, 2)
+  unidadesPorCaixa Decimal?        @db.Decimal(12, 3)
+  createdAt        DateTime        @default(now())
+  itensCompra      ItemCompra[]
+  itensVenda       ItemVenda[]
+  ajustes          AjusteEstoque[]
 }
 
 model AjusteEstoque {
@@ -114,13 +115,14 @@ model Compra {
 }
 
 model ItemCompra {
-  id           Int      @id @default(autoincrement())
-  compra       Compra   @relation(fields: [compraId], references: [id], onDelete: Cascade)
-  compraId     Int
-  produto      Produto  @relation(fields: [produtoId], references: [id])
-  produtoId    Int
-  quantidade   Decimal  @db.Decimal(12, 3)
-  custoUnitario Decimal @db.Decimal(12, 2)
+  id               Int      @id @default(autoincrement())
+  compra           Compra   @relation(fields: [compraId], references: [id], onDelete: Cascade)
+  compraId         Int
+  produto          Produto  @relation(fields: [produtoId], references: [id])
+  produtoId        Int
+  quantidade       Decimal  @db.Decimal(12, 3)
+  custoUnitario    Decimal  @db.Decimal(12, 2)
+  unidadesPorCaixa Decimal? @db.Decimal(12, 3)
 }
 
 model Venda {
@@ -139,14 +141,15 @@ model Venda {
 }
 
 model ItemVenda {
-  id            Int     @id @default(autoincrement())
-  venda         Venda   @relation(fields: [vendaId], references: [id], onDelete: Cascade)
-  vendaId       Int
-  produto       Produto @relation(fields: [produtoId], references: [id])
-  produtoId     Int
-  quantidade    Decimal @db.Decimal(12, 3)
-  precoUnitario Decimal @db.Decimal(12, 2)
-  custoUnitario Decimal? @db.Decimal(12, 2)
+  id               Int      @id @default(autoincrement())
+  venda            Venda    @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+  vendaId          Int
+  produto          Produto  @relation(fields: [produtoId], references: [id])
+  produtoId        Int
+  quantidade       Decimal  @db.Decimal(12, 3)
+  precoUnitario    Decimal  @db.Decimal(12, 2)
+  custoUnitario    Decimal? @db.Decimal(12, 2)
+  unidadesPorCaixa Decimal? @db.Decimal(12, 3)
 }
 
 model ContaReceber {
