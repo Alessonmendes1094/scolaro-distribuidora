@@ -7,6 +7,11 @@ const DIAS_VENCIMENTO_PADRAO = 30;
 const FORMAS_VALIDAS = ['FIADO', 'BOLETO', 'A_VISTA', 'PIX', 'DINHEIRO'];
 const FORMAS_IMEDIATAS = ['A_VISTA', 'PIX', 'DINHEIRO'];
 
+function lucroItemVenda(item) {
+  if (item.lucroManual !== null && item.lucroManual !== undefined) return Number(item.lucroManual);
+  return (Number(item.precoUnitario) - Number(item.custoUnitario ?? 0)) * Number(item.quantidade);
+}
+
 router.get('/', async (req, res) => {
   const { clienteId, empresaId, dataInicio, dataFim } = req.query;
 
@@ -32,12 +37,7 @@ router.get('/', async (req, res) => {
 
   const vendasComLucro = vendas.map((venda) => ({
     ...venda,
-    lucroTotal: venda.itens.reduce(
-      (acc, item) =>
-        acc +
-        (Number(item.precoUnitario) - Number(item.custoUnitario ?? 0)) * Number(item.quantidade),
-      0
-    ),
+    lucroTotal: venda.itens.reduce((acc, item) => acc + lucroItemVenda(item), 0),
   }));
 
   res.json(vendasComLucro);
@@ -130,6 +130,10 @@ router.post('/', async (req, res) => {
               precoUnitario: item.precoUnitario,
               custoUnitario: custosPorProduto[Number(item.produtoId)],
               unidadesPorCaixa: unidadesPorCaixaPorProduto[Number(item.produtoId)] ?? null,
+              lucroManual:
+                item.lucroManual !== undefined && item.lucroManual !== null && item.lucroManual !== ''
+                  ? item.lucroManual
+                  : null,
             })),
           },
         },
@@ -268,6 +272,10 @@ router.put('/:id', async (req, res) => {
               precoUnitario: item.precoUnitario,
               custoUnitario: custosPorProduto[Number(item.produtoId)],
               unidadesPorCaixa: unidadesPorCaixaPorProduto[Number(item.produtoId)] ?? null,
+              lucroManual:
+                item.lucroManual !== undefined && item.lucroManual !== null && item.lucroManual !== ''
+                  ? item.lucroManual
+                  : null,
             })),
           },
         },

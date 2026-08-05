@@ -150,12 +150,15 @@ model ItemVenda {
   precoUnitario    Decimal  @db.Decimal(12, 2)
   custoUnitario    Decimal? @db.Decimal(12, 2)
   unidadesPorCaixa Decimal? @db.Decimal(12, 3)
+  lucroManual      Decimal? @db.Decimal(12, 2)
 }
 
 model ContaReceber {
   id          Int         @id @default(autoincrement())
-  venda       Venda       @relation(fields: [vendaId], references: [id])
-  vendaId     Int
+  venda       Venda?      @relation(fields: [vendaId], references: [id])
+  vendaId     Int?
+  descricao   String?
+  lucro       Decimal?    @db.Decimal(12, 2)
   valor       Decimal     @db.Decimal(12, 2)
   vencimento  DateTime
   status      StatusConta @default(PENDENTE)

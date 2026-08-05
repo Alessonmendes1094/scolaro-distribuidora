@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Wallet, Plus, CircleDollarSign, Undo2 } from 'lucide-react';
+import { Wallet, Plus, CircleDollarSign, Undo2, Trash2 } from 'lucide-react';
 import api from '../lib/api';
 import { formatarData } from '../lib/date';
 import Modal from '../components/Modal.jsx';
@@ -83,6 +83,16 @@ export default function ContasPagar() {
     }
   }
 
+  async function excluir(id) {
+    if (!confirm('Deseja realmente excluir esta conta a pagar?')) return;
+    try {
+      await api.delete(`/contas-pagar/${id}`);
+      carregar();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erro ao excluir conta');
+    }
+  }
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -136,7 +146,7 @@ export default function ContasPagar() {
                   {STATUS_LABEL[c.status]}
                 </span>
               </td>
-              <td className="p-3">
+              <td className="p-3 space-y-1">
                 {c.status !== 'PAGO' ? (
                   <button
                     onClick={() => abrirPagar(c)}
@@ -152,6 +162,15 @@ export default function ContasPagar() {
                   >
                     <Undo2 className="w-3.5 h-3.5" />
                     Cancelar baixa
+                  </button>
+                )}
+                {!c.compraId && c.status !== 'PAGO' && (
+                  <button
+                    onClick={() => excluir(c.id)}
+                    className="text-red-600 hover:underline inline-flex items-center gap-1 block"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Excluir
                   </button>
                 )}
               </td>

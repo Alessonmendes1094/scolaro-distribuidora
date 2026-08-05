@@ -1,13 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import { HandCoins, Printer, Undo2, Ban } from 'lucide-react';
+import { HandCoins, Printer, Undo2, Ban, Plus, Trash2 } from 'lucide-react';
 import api from '../lib/api';
 import { formatarData } from '../lib/date';
 import { STATUS_LABEL, STATUS_BADGE } from '../lib/status';
 import VendaDetalheModal from '../components/VendaDetalheModal.jsx';
 import SortableTh from '../components/SortableTh.jsx';
 import { useSort } from '../lib/useSort';
+import Modal from '../components/Modal.jsx';
+
+const FORM_INICIAL = { descricao: '', valor: '', vencimento: '', lucro: '' };
 
 export default function ContasReceber() {
+  const [modalNovaAberto, setModalNovaAberto] = useState(false);
+  const [form, setForm] = useState(FORM_INICIAL);
+  const [erroForm, setErroForm] = useState('');
   const [lista, setLista] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState('');
@@ -114,6 +120,39 @@ export default function ContasReceber() {
     }
   }
 
+  function abrirNova() {
+    setForm(FORM_INICIAL);
+    setErroForm('');
+    setModalNovaAberto(true);
+  }
+
+  async function salvarNova(e) {
+    e.preventDefault();
+    setErroForm('');
+    try {
+      await api.post('/contas-receber', {
+        descricao: form.descricao,
+        valor: Number(form.valor),
+        vencimento: form.vencimento,
+        lucro: form.lucro !== '' ? Number(form.lucro) : null,
+      });
+      setModalNovaAberto(false);
+      carregar();
+    } catch (err) {
+      setErroForm(err.response?.data?.error || 'Erro ao salvar conta a receber');
+    }
+  }
+
+  async function excluir(id) {
+    if (!confirm('Deseja realmente excluir esta conta a receber?')) return;
+    try {
+      await api.delete(`/contas-receber/${id}`);
+      carregar();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erro ao excluir conta');
+    }
+  }
+
   const pendentesSelecionaveis = lista.filter(
     (c) => c.status !== 'PAGO' && c.status !== 'PERDIDO'
   );
@@ -121,7 +160,7 @@ export default function ContasReceber() {
   const { dadosOrdenados, sortKey, sortDir, requestSort } = useSort(
     lista,
     {
-      cliente: (c) => c.venda?.cliente?.nome?.toLowerCase(),
+      cliente: (c) => (c.venda?.cliente?.nome || c.descricao || '').toLowerCase(),
       venda: (c) => c.vendaId,
       valor: (c) => Number(c.valor),
       vencimento: (c) => c.vencimento,
@@ -134,10 +173,19 @@ export default function ContasReceber() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4 flex items-center gap-2">
-        <HandCoins className="w-6 h-6 text-slate-700" />
-        Contas a Receber
-      </h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <HandCoins className="w-6 h-6 text-slate-700" />
+          Contas a Receber
+        </h1>
+        <button
+          onClick={abrirNova}
+          className="bg-slate-900 text-white px-4 py-2 rounded hover:bg-slate-800 flex items-center gap-1.5"
+        >
+          <Plus className="w-4 h-4" />
+          Nova Conta a Receber
+        </button>
+      </div>
 
       <div className="flex flex-wrap gap-3 items-end mb-4">
         <div>
@@ -241,14 +289,22 @@ export default function ContasReceber() {
                   />
                 )}
               </td>
-              <td className="p-3">{c.venda?.cliente?.nome}</td>
               <td className="p-3">
-                <button
-                  onClick={() => setVendaDetalheId(c.vendaId)}
-                  className="text-blue-600 hover:underline"
-                >
-                  #{c.vendaId}
-                </button>
+                {c.venda?.cliente?.nome || (
+                  <span className="text-gray-500">{c.descricao || 'Lançamento manual'}</span>
+                )}
+              </td>
+              <td className="p-3">
+                {c.vendaId ? (
+                  <button
+                    onClick={() => setVendaDetalheId(c.vendaId)}
+                    className="text-blue-600 hover:underline"
+                  >
+                    #{c.vendaId}
+                  </button>
+                ) : (
+                  '-'
+                )}
               </td>
               <td className="p-3">R$ {Number(c.valor).toFixed(2)}</td>
               <td className="p-3">{formatarData(c.vencimento)}</td>
@@ -312,6 +368,15 @@ export default function ContasReceber() {
                     </button>
                   </>
                 )}
+                {!c.vendaId && c.status !== 'PAGO' && (
+                  <button
+                    onClick={() => excluir(c.id)}
+                    className="text-red-600 hover:underline inline-flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Excluir
+                  </button>
+                )}
               </td>
             </tr>
           ))}
@@ -331,6 +396,59 @@ export default function ContasReceber() {
       )}
 
       <VendaDetalheModal vendaId={vendaDetalheId} onClose={() => setVendaDetalheId(null)} />
+
+      <Modal
+        open={modalNovaAberto}
+        title="Nova Conta a Receber"
+        onClose={() => setModalNovaAberto(false)}
+      >
+        <form onSubmit={salvarNova}>
+          {erroForm && <div className="mb-3 text-sm text-red-600">{erroForm}</div>}
+          <label className="block text-sm mb-1">Descrição</label>
+          <input
+            className="w-full border rounded px-3 py-2 mb-4"
+            value={form.descricao}
+            onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+            placeholder="Ex: Recebimento diverso - Cliente X"
+            required
+          />
+          <label className="block text-sm mb-1">Valor</label>
+          <input
+            type="number"
+            step="0.01"
+            className="w-full border rounded px-3 py-2 mb-4"
+            value={form.valor}
+            onChange={(e) => setForm({ ...form, valor: e.target.value })}
+            required
+          />
+          <label className="block text-sm mb-1">Vencimento</label>
+          <input
+            type="date"
+            className="w-full border rounded px-3 py-2 mb-4"
+            value={form.vencimento}
+            onChange={(e) => setForm({ ...form, vencimento: e.target.value })}
+            required
+          />
+          <label className="block text-sm mb-1">Lucro deste recebimento (opcional)</label>
+          <input
+            type="number"
+            step="0.01"
+            className="w-full border rounded px-3 py-2 mb-1"
+            value={form.lucro}
+            onChange={(e) => setForm({ ...form, lucro: e.target.value })}
+          />
+          <div className="text-xs text-gray-500 mb-6">
+            Esse valor entra no cálculo de lucratividade do Dashboard, junto com o lucro das
+            vendas.
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-slate-900 text-white rounded px-3 py-2 hover:bg-slate-800"
+          >
+            Salvar
+          </button>
+        </form>
+      </Modal>
     </div>
   );
 }

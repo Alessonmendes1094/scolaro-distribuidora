@@ -35,6 +35,66 @@ router.get('/', async (req, res) => {
   res.json(contas);
 });
 
+// body: { descricao, valor, vencimento, lucro? } — lançamento manual, sem venda vinculada
+router.post('/', async (req, res) => {
+  const { descricao, valor, vencimento, lucro } = req.body;
+  if (!descricao || valor === undefined || !vencimento) {
+    return res.status(400).json({ error: 'Descrição, valor e vencimento são obrigatórios' });
+  }
+  const conta = await prisma.contaReceber.create({
+    data: {
+      descricao,
+      valor,
+      vencimento: new Date(vencimento),
+      lucro: lucro !== undefined && lucro !== null && lucro !== '' ? lucro : null,
+      status: 'PENDENTE',
+    },
+  });
+  res.status(201).json(conta);
+});
+
+router.put('/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const { descricao, valor, vencimento, lucro } = req.body;
+  try {
+    const contaAtual = await prisma.contaReceber.findUnique({ where: { id } });
+    if (!contaAtual) throw new Error('Conta a receber não encontrada');
+    if (contaAtual.vendaId) throw new Error('Esta conta está vinculada a uma venda e não pode ser editada diretamente');
+    if (contaAtual.status === 'PAGO') throw new Error('Não é possível editar uma conta já recebida');
+
+    const conta = await prisma.contaReceber.update({
+      where: { id },
+      data: {
+        descricao,
+        valor,
+        vencimento: vencimento ? new Date(vencimento) : undefined,
+        lucro: lucro !== undefined && lucro !== null && lucro !== '' ? lucro : null,
+      },
+    });
+    res.json(conta);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  try {
+    const conta = await prisma.contaReceber.findUnique({ where: { id } });
+    if (!conta) return res.status(404).json({ error: 'Conta a receber não encontrada' });
+    if (conta.vendaId) {
+      throw new Error('Esta conta está vinculada a uma venda e não pode ser excluída diretamente. Exclua a venda.');
+    }
+    if (conta.status === 'PAGO') {
+      throw new Error('Não é possível excluir uma conta já recebida');
+    }
+    await prisma.contaReceber.delete({ where: { id } });
+    res.status(204).send();
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // Detalhes de uma baixa (para imprimir o recibo de pagamento)
 router.get('/baixas/:id', async (req, res) => {
   const id = Number(req.params.id);
@@ -89,10 +149,14 @@ router.post('/:id/pagar', async (req, res) => {
         data: { status: 'PAGO', pagoEm: dataEfetiva, baixaId: baixa.id },
       });
 
+      const descricaoMovimento = contaAtual.venda
+        ? `Recebimento: Venda #${contaAtual.vendaId} - ${contaAtual.venda.cliente.nome}`
+        : `Recebimento: ${contaAtual.descricao || 'Lançamento manual'}`;
+
       await tx.movimentoCaixa.create({
         data: {
           tipo: 'ENTRADA',
-          descricao: `Recebimento: Venda #${contaAtual.vendaId} - ${contaAtual.venda.cliente.nome}`,
+          descricao: descricaoMovimento,
           valor: contaAtualizada.valor,
           contaReceberId: contaAtualizada.id,
           vendaId: contaAtual.vendaId,
@@ -254,6 +318,10 @@ router.post('/baixar', async (req, res) => {
 
         const valorConta = Number(conta.valor);
 
+        const identificacao = conta.venda
+          ? `Venda #${conta.vendaId} - ${conta.venda.cliente.nome}`
+          : conta.descricao || 'Lançamento manual';
+
         if (restante >= valorConta) {
           const contaPaga = await tx.contaReceber.update({
             where: { id: conta.id },
@@ -262,7 +330,7 @@ router.post('/baixar', async (req, res) => {
           await tx.movimentoCaixa.create({
             data: {
               tipo: 'ENTRADA',
-              descricao: `Recebimento: Venda #${conta.vendaId} - ${conta.venda.cliente.nome}`,
+              descricao: `Recebimento: ${identificacao}`,
               valor: valorConta,
               contaReceberId: contaPaga.id,
               vendaId: conta.vendaId,
@@ -282,7 +350,7 @@ router.post('/baixar', async (req, res) => {
           await tx.movimentoCaixa.create({
             data: {
               tipo: 'ENTRADA',
-              descricao: `Recebimento parcial: Venda #${conta.vendaId} - ${conta.venda.cliente.nome}`,
+              descricao: `Recebimento parcial: ${identificacao}`,
               valor: valorPago,
               contaReceberId: contaPaga.id,
               vendaId: conta.vendaId,
@@ -294,6 +362,7 @@ router.post('/baixar', async (req, res) => {
           await tx.contaReceber.create({
             data: {
               vendaId: conta.vendaId,
+              descricao: conta.descricao,
               valor: valorRemanescente,
               vencimento: conta.vencimento,
               status: novaVencida,

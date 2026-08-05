@@ -110,8 +110,21 @@ router.post('/:id/cancelar-baixa', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
-  await prisma.contaPagar.delete({ where: { id: Number(req.params.id) } });
-  res.status(204).send();
+  const id = Number(req.params.id);
+  try {
+    const conta = await prisma.contaPagar.findUnique({ where: { id } });
+    if (!conta) return res.status(404).json({ error: 'Conta a pagar não encontrada' });
+    if (conta.compraId) {
+      throw new Error('Esta conta está vinculada a uma compra e não pode ser excluída diretamente. Exclua a compra.');
+    }
+    if (conta.status === 'PAGO') {
+      throw new Error('Não é possível excluir uma conta já paga');
+    }
+    await prisma.contaPagar.delete({ where: { id } });
+    res.status(204).send();
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 module.exports = router;

@@ -25,7 +25,7 @@ export default function ReciboPagamento() {
   if (!baixa) return <div className="p-8">Carregando...</div>;
 
   const clientesUnicos = [
-    ...new Set(baixa.contas.map((c) => c.venda.cliente.nome)),
+    ...new Set(baixa.contas.map((c) => c.venda?.cliente?.nome || c.descricao || 'Lançamento manual')),
   ];
 
   return (
@@ -90,9 +90,9 @@ export default function ReciboPagamento() {
             <tbody>
               {baixa.contas.map((conta) => (
                 <tr key={conta.id} className="border-b border-gray-300">
-                  <td className="py-2">{conta.venda.cliente.nome}</td>
-                  <td className="py-2">#{conta.vendaId}</td>
-                  <td className="py-2">{conta.venda.empresa?.razaoSocial}</td>
+                  <td className="py-2">{conta.venda?.cliente?.nome || conta.descricao || 'Lançamento manual'}</td>
+                  <td className="py-2">{conta.vendaId ? `#${conta.vendaId}` : '-'}</td>
+                  <td className="py-2">{conta.venda?.empresa?.razaoSocial || '-'}</td>
                   <td className="py-2 text-right">R$ {Number(conta.valor).toFixed(2)}</td>
                 </tr>
               ))}

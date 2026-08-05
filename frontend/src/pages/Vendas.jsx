@@ -10,7 +10,14 @@ import { useSort } from '../lib/useSort';
 import { FORMA_PAGAMENTO_LABEL, FORMA_PAGAMENTO_OPCOES, FORMAS_PAGAMENTO_IMEDIATAS } from '../lib/formaPagamento';
 import { unidadeParaCaixa, caixaParaUnidade } from '../lib/caixa';
 
-const ITEM_VAZIO = { produtoId: '', quantidade: '', quantidadeCaixa: '', precoUnitario: '', custoUnitario: null };
+const ITEM_VAZIO = {
+  produtoId: '',
+  quantidade: '',
+  quantidadeCaixa: '',
+  precoUnitario: '',
+  custoUnitario: null,
+  lucroManual: null,
+};
 
 function totalVenda(v) {
   return v.itens.reduce((acc, i) => acc + Number(i.quantidade) * Number(i.precoUnitario), 0);
@@ -118,6 +125,7 @@ export default function Vendas() {
         quantidadeCaixa: unidadeParaCaixa(i.quantidade, i.produto?.unidadesPorCaixa),
         precoUnitario: Number(i.precoUnitario),
         custoUnitario: i.custoUnitario !== null ? Number(i.custoUnitario) : null,
+        lucroManual: i.lucroManual !== null && i.lucroManual !== undefined ? Number(i.lucroManual) : null,
       }))
     );
     setErro('');
@@ -153,6 +161,7 @@ export default function Vendas() {
         quantidadeCaixa: unidadeParaCaixa(i.quantidade, produto?.unidadesPorCaixa),
         precoUnitario: Number(i.precoUnitario),
         custoUnitario: null,
+        lucroManual: null,
       };
     });
     setItens(novosItens);
@@ -212,6 +221,7 @@ export default function Vendas() {
     novosItens[index].produtoId = produtoId;
     novosItens[index].precoUnitario = produto ? Number(produto.precoVenda) : '';
     novosItens[index].custoUnitario = null;
+    novosItens[index].lucroManual = null;
     novosItens[index].quantidadeCaixa = unidadeParaCaixa(
       novosItens[index].quantidade,
       produto?.unidadesPorCaixa
@@ -244,6 +254,7 @@ export default function Vendas() {
           produtoId: Number(i.produtoId),
           quantidade: Number(i.quantidade),
           precoUnitario: Number(i.precoUnitario),
+          lucroManual: i.lucroManual !== null && i.lucroManual !== undefined ? Number(i.lucroManual) : null,
         })),
       };
 
@@ -562,18 +573,39 @@ export default function Vendas() {
                       </div>
                     )}
                     {temCusto ? (
-                      <>
-                        Custo última compra: R$ {Number(item.custoUnitario).toFixed(2)} — Lucro
-                        {lucroItem !== null && (
-                          <span className={lucroItem < 0 ? 'text-red-600 font-medium' : 'text-green-700 font-medium'}>
-                            {' '}
-                            R$ {lucroItem.toFixed(2)}
-                          </span>
-                        )}
-                      </>
+                      <div>Custo última compra: R$ {Number(item.custoUnitario).toFixed(2)}</div>
                     ) : (
-                      'Sem histórico de compra deste produto para calcular lucro'
+                      <div>Sem histórico de compra deste produto para calcular lucro automaticamente</div>
                     )}
+                    <div className="flex items-center gap-2 mt-1">
+                      <span>Lucro do item:</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        className={`w-28 border rounded px-2 py-1 text-xs ${
+                          item.lucroManual !== null && item.lucroManual !== undefined
+                            ? 'border-amber-400 bg-amber-50'
+                            : ''
+                        }`}
+                        value={
+                          item.lucroManual !== null && item.lucroManual !== undefined
+                            ? item.lucroManual
+                            : lucroItem !== null
+                              ? lucroItem.toFixed(2)
+                              : ''
+                        }
+                        onChange={(e) => atualizarItem(index, 'lucroManual', e.target.value)}
+                      />
+                      {item.lucroManual !== null && item.lucroManual !== undefined && (
+                        <button
+                          type="button"
+                          onClick={() => atualizarItem(index, 'lucroManual', null)}
+                          className="text-blue-600 hover:underline"
+                        >
+                          Usar automático
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

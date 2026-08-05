@@ -46,16 +46,28 @@ router.get('/', async (req, res) => {
       0
     );
 
-  const lucroTotal = vendas.reduce(
-    (acc, venda) =>
-      acc +
-      venda.itens.reduce(
-        (s, i) =>
-          s + (Number(i.precoUnitario) - Number(i.custoUnitario ?? 0)) * Number(i.quantidade),
-        0
-      ),
+  function lucroItemVenda(i) {
+    if (i.lucroManual !== null && i.lucroManual !== undefined) return Number(i.lucroManual);
+    return (Number(i.precoUnitario) - Number(i.custoUnitario ?? 0)) * Number(i.quantidade);
+  }
+
+  const lucroVendas = vendas.reduce(
+    (acc, venda) => acc + venda.itens.reduce((s, i) => s + lucroItemVenda(i), 0),
     0
   );
+
+  const contasReceberManuaisPeriodo = await prisma.contaReceber.findMany({
+    where: {
+      vendaId: null,
+      createdAt: { gte: dataInicio, lte: dataFim },
+    },
+  });
+  const lucroManualContas = contasReceberManuaisPeriodo.reduce(
+    (acc, c) => acc + Number(c.lucro ?? 0),
+    0
+  );
+
+  const lucroTotal = lucroVendas + lucroManualContas;
 
   const compras = await prisma.compra.findMany({
     where: { data: { gte: dataInicio, lte: dataFim } },
@@ -83,14 +95,15 @@ router.get('/', async (req, res) => {
       (s, i) => s + Number(i.quantidade) * Number(i.precoUnitario),
       0
     );
-    const lucroVenda = venda.itens.reduce(
-      (s, i) =>
-        s + (Number(i.precoUnitario) - Number(i.custoUnitario ?? 0)) * Number(i.quantidade),
-      0
-    );
+    const lucroVenda = venda.itens.reduce((s, i) => s + lucroItemVenda(i), 0);
     if (!porDiaMap[dia]) porDiaMap[dia] = { vendas: 0, lucro: 0, compras: 0 };
     porDiaMap[dia].vendas += totalVenda;
     porDiaMap[dia].lucro += lucroVenda;
+  }
+  for (const conta of contasReceberManuaisPeriodo) {
+    const dia = conta.createdAt.toISOString().slice(0, 10);
+    if (!porDiaMap[dia]) porDiaMap[dia] = { vendas: 0, lucro: 0, compras: 0 };
+    porDiaMap[dia].lucro += Number(conta.lucro ?? 0);
   }
   for (const compra of compras) {
     const dia = compra.data.toISOString().slice(0, 10);
