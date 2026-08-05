@@ -8,7 +8,7 @@ import SortableTh from '../components/SortableTh.jsx';
 import { useSort } from '../lib/useSort';
 import Modal from '../components/Modal.jsx';
 
-const FORM_INICIAL = { descricao: '', valor: '', vencimento: '', lucro: '' };
+const FORM_INICIAL = { descricao: '', valor: '', vencimento: '', lucro: '', clienteId: '' };
 
 export default function ContasReceber() {
   const [modalNovaAberto, setModalNovaAberto] = useState(false);
@@ -135,6 +135,7 @@ export default function ContasReceber() {
         valor: Number(form.valor),
         vencimento: form.vencimento,
         lucro: form.lucro !== '' ? Number(form.lucro) : null,
+        clienteId: form.clienteId || null,
       });
       setModalNovaAberto(false);
       carregar();
@@ -160,7 +161,7 @@ export default function ContasReceber() {
   const { dadosOrdenados, sortKey, sortDir, requestSort } = useSort(
     lista,
     {
-      cliente: (c) => (c.venda?.cliente?.nome || c.descricao || '').toLowerCase(),
+      cliente: (c) => (c.venda?.cliente?.nome || c.cliente?.nome || c.descricao || '').toLowerCase(),
       venda: (c) => c.vendaId,
       valor: (c) => Number(c.valor),
       vencimento: (c) => c.vencimento,
@@ -290,8 +291,11 @@ export default function ContasReceber() {
                 )}
               </td>
               <td className="p-3">
-                {c.venda?.cliente?.nome || (
+                {c.venda?.cliente?.nome || c.cliente?.nome || (
                   <span className="text-gray-500">{c.descricao || 'Lançamento manual'}</span>
+                )}
+                {!c.vendaId && c.cliente?.nome && (
+                  <div className="text-xs text-gray-400">{c.descricao}</div>
                 )}
               </td>
               <td className="p-3">
@@ -404,6 +408,19 @@ export default function ContasReceber() {
       >
         <form onSubmit={salvarNova}>
           {erroForm && <div className="mb-3 text-sm text-red-600">{erroForm}</div>}
+          <label className="block text-sm mb-1">Cliente (opcional)</label>
+          <select
+            className="w-full border rounded px-3 py-2 mb-4"
+            value={form.clienteId}
+            onChange={(e) => setForm({ ...form, clienteId: e.target.value })}
+          >
+            <option value="">Nenhum cliente vinculado</option>
+            {clientes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nome}
+              </option>
+            ))}
+          </select>
           <label className="block text-sm mb-1">Descrição</label>
           <input
             className="w-full border rounded px-3 py-2 mb-4"

@@ -20,7 +20,12 @@ router.get('/', async (req, res) => {
   const { status, clienteId, dataInicio, dataFim } = req.query;
   const where = {};
   if (status) where.status = status;
-  if (clienteId) where.venda = { clienteId: Number(clienteId) };
+  if (clienteId) {
+    where.OR = [
+      { venda: { clienteId: Number(clienteId) } },
+      { clienteId: Number(clienteId) },
+    ];
+  }
   if (dataInicio || dataFim) {
     where.vencimento = {};
     if (dataInicio) where.vencimento.gte = new Date(dataInicio);
@@ -29,15 +34,15 @@ router.get('/', async (req, res) => {
 
   const contas = await prisma.contaReceber.findMany({
     where,
-    include: { venda: { include: { cliente: true } }, baixa: true },
+    include: { venda: { include: { cliente: true } }, cliente: true, baixa: true },
     orderBy: { vencimento: 'asc' },
   });
   res.json(contas);
 });
 
-// body: { descricao, valor, vencimento, lucro? } — lançamento manual, sem venda vinculada
+// body: { descricao, valor, vencimento, lucro?, clienteId? } — lançamento manual, sem venda vinculada
 router.post('/', async (req, res) => {
-  const { descricao, valor, vencimento, lucro } = req.body;
+  const { descricao, valor, vencimento, lucro, clienteId } = req.body;
   if (!descricao || valor === undefined || !vencimento) {
     return res.status(400).json({ error: 'Descrição, valor e vencimento são obrigatórios' });
   }
@@ -47,15 +52,17 @@ router.post('/', async (req, res) => {
       valor,
       vencimento: new Date(vencimento),
       lucro: lucro !== undefined && lucro !== null && lucro !== '' ? lucro : null,
+      clienteId: clienteId ? Number(clienteId) : null,
       status: 'PENDENTE',
     },
+    include: { cliente: true },
   });
   res.status(201).json(conta);
 });
 
 router.put('/:id', async (req, res) => {
   const id = Number(req.params.id);
-  const { descricao, valor, vencimento, lucro } = req.body;
+  const { descricao, valor, vencimento, lucro, clienteId } = req.body;
   try {
     const contaAtual = await prisma.contaReceber.findUnique({ where: { id } });
     if (!contaAtual) throw new Error('Conta a receber não encontrada');
@@ -69,7 +76,9 @@ router.put('/:id', async (req, res) => {
         valor,
         vencimento: vencimento ? new Date(vencimento) : undefined,
         lucro: lucro !== undefined && lucro !== null && lucro !== '' ? lucro : null,
+        clienteId: clienteId ? Number(clienteId) : null,
       },
+      include: { cliente: true },
     });
     res.json(conta);
   } catch (err) {
@@ -107,7 +116,7 @@ router.get('/baixas/:id', async (req, res) => {
       where: { id },
       include: {
         contas: {
-          include: { venda: { include: { cliente: true, empresa: true } } },
+          include: { venda: { include: { cliente: true, empresa: true } }, cliente: true },
         },
       },
     });

@@ -298,8 +298,8 @@ export default function Relatorios() {
         for (const p of grupo.pagamentos) {
           linhas.push([
             grupo.clienteNome,
-            `#${p.vendaId}`,
-            formatarData(p.dataVenda),
+            p.vendaId ? `#${p.vendaId}` : p.descricao || 'Manual',
+            p.dataVenda ? formatarData(p.dataVenda) : '-',
             `R$ ${p.valorVenda.toFixed(2)}`,
             `R$ ${p.valor.toFixed(2)}`,
             formatarData(p.pagoEm),
@@ -314,8 +314,8 @@ export default function Relatorios() {
           const statusTexto = STATUS_LABEL[p.status] || p.status;
           linhas.push([
             grupo.clienteNome,
-            `#${p.vendaId}`,
-            formatarData(p.dataVenda),
+            p.vendaId ? `#${p.vendaId}` : p.descricao || 'Manual',
+            p.dataVenda ? formatarData(p.dataVenda) : '-',
             `R$ ${p.valorVenda.toFixed(2)}`,
             `R$ ${p.valor.toFixed(2)}`,
             formatarData(p.vencimento),
@@ -691,14 +691,18 @@ export default function Relatorios() {
                   {grupo.pagamentos.map((p) => (
                     <tr key={p.contaId} className="border-t">
                       <td className="py-1">
-                        <button
-                          onClick={() => setVendaDetalheId(p.vendaId)}
-                          className="text-blue-600 hover:underline"
-                        >
-                          #{p.vendaId}
-                        </button>
+                        {p.vendaId ? (
+                          <button
+                            onClick={() => setVendaDetalheId(p.vendaId)}
+                            className="text-blue-600 hover:underline"
+                          >
+                            #{p.vendaId}
+                          </button>
+                        ) : (
+                          <span className="text-gray-500">{p.descricao || 'Manual'}</span>
+                        )}
                       </td>
-                      <td className="py-1">{formatarData(p.dataVenda)}</td>
+                      <td className="py-1">{p.dataVenda ? formatarData(p.dataVenda) : '-'}</td>
                       <td className="py-1">R$ {p.valorVenda.toFixed(2)}</td>
                       <td className="py-1">R$ {p.valor.toFixed(2)}</td>
                       <td className="py-1">{p.codigoBaixa || '-'}</td>
@@ -735,14 +739,18 @@ export default function Relatorios() {
                   {grupo.pendencias.map((p) => (
                     <tr key={p.contaId} className="border-t">
                       <td className="py-1">
-                        <button
-                          onClick={() => setVendaDetalheId(p.vendaId)}
-                          className="text-blue-600 hover:underline"
-                        >
-                          #{p.vendaId}
-                        </button>
+                        {p.vendaId ? (
+                          <button
+                            onClick={() => setVendaDetalheId(p.vendaId)}
+                            className="text-blue-600 hover:underline"
+                          >
+                            #{p.vendaId}
+                          </button>
+                        ) : (
+                          <span className="text-gray-500">{p.descricao || 'Manual'}</span>
+                        )}
                       </td>
-                      <td className="py-1">{formatarData(p.dataVenda)}</td>
+                      <td className="py-1">{p.dataVenda ? formatarData(p.dataVenda) : '-'}</td>
                       <td className="py-1">R$ {p.valorVenda.toFixed(2)}</td>
                       <td className="py-1">R$ {p.valor.toFixed(2)}</td>
                       <td className="py-1">{formatarData(p.vencimento)}</td>
