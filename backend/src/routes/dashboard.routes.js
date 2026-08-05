@@ -8,6 +8,9 @@ function parsePeriodo(query) {
   const inicioPadrao = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   const dataInicio = query.dataInicio ? new Date(query.dataInicio) : inicioPadrao;
   const dataFim = query.dataFim ? new Date(query.dataFim) : hoje;
+  // Estende até o fim do dia (UTC) para não excluir registros com
+  // horário (ex: createdAt de contas lançadas manualmente) do dia final.
+  dataFim.setUTCHours(23, 59, 59, 999);
   return { dataInicio, dataFim };
 }
 
