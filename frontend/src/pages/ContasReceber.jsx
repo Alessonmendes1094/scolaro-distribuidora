@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { HandCoins, Printer, Undo2, Ban, Plus, Trash2 } from 'lucide-react';
+import { HandCoins, Printer, Undo2, Ban, Plus, Trash2, Pencil } from 'lucide-react';
 import api from '../lib/api';
 import { formatarData } from '../lib/date';
 import { STATUS_LABEL, STATUS_BADGE } from '../lib/status';
@@ -14,6 +14,7 @@ export default function ContasReceber() {
   const [modalNovaAberto, setModalNovaAberto] = useState(false);
   const [form, setForm] = useState(FORM_INICIAL);
   const [erroForm, setErroForm] = useState('');
+  const [editandoConta, setEditandoConta] = useState(null);
   const [lista, setLista] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [clienteId, setClienteId] = useState('');
@@ -122,6 +123,21 @@ export default function ContasReceber() {
 
   function abrirNova() {
     setForm(FORM_INICIAL);
+    setEditandoConta(null);
+    setErroForm('');
+    setModalNovaAberto(true);
+  }
+
+  function abrirEdicao(conta) {
+    setForm({
+      descricao: conta.descricao || '',
+      valor: Number(conta.valor),
+      vencimento: conta.vencimento ? new Date(conta.vencimento).toISOString().slice(0, 10) : '',
+      lucro: conta.lucro !== null && conta.lucro !== undefined ? Number(conta.lucro) : '',
+      clienteId: conta.clienteId ? String(conta.clienteId) : '',
+      dataVenda: conta.dataVenda ? new Date(conta.dataVenda).toISOString().slice(0, 10) : '',
+    });
+    setEditandoConta(conta);
     setErroForm('');
     setModalNovaAberto(true);
   }
@@ -130,15 +146,30 @@ export default function ContasReceber() {
     e.preventDefault();
     setErroForm('');
     try {
-      await api.post('/contas-receber', {
-        descricao: form.descricao,
-        valor: Number(form.valor),
-        vencimento: form.vencimento,
-        lucro: form.lucro !== '' ? Number(form.lucro) : null,
-        clienteId: form.clienteId || null,
-        dataVenda: form.dataVenda || null,
-      });
+      if (editandoConta) {
+        const payload = editandoConta.vendaId
+          ? { vencimento: form.vencimento }
+          : {
+              descricao: form.descricao,
+              valor: Number(form.valor),
+              vencimento: form.vencimento,
+              lucro: form.lucro !== '' ? Number(form.lucro) : null,
+              clienteId: form.clienteId || null,
+              dataVenda: form.dataVenda || null,
+            };
+        await api.put(`/contas-receber/${editandoConta.id}`, payload);
+      } else {
+        await api.post('/contas-receber', {
+          descricao: form.descricao,
+          valor: Number(form.valor),
+          vencimento: form.vencimento,
+          lucro: form.lucro !== '' ? Number(form.lucro) : null,
+          clienteId: form.clienteId || null,
+          dataVenda: form.dataVenda || null,
+        });
+      }
       setModalNovaAberto(false);
+      setEditandoConta(null);
       carregar();
     } catch (err) {
       setErroForm(err.response?.data?.error || 'Erro ao salvar conta a receber');
@@ -373,6 +404,15 @@ export default function ContasReceber() {
                     </button>
                   </>
                 )}
+                {c.status !== 'PAGO' && (
+                  <button
+                    onClick={() => abrirEdicao(c)}
+                    className="text-blue-600 hover:underline inline-flex items-center gap-1"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    Editar
+                  </button>
+                )}
                 {!c.vendaId && c.status !== 'PAGO' && (
                   <button
                     onClick={() => excluir(c.id)}
@@ -404,52 +444,71 @@ export default function ContasReceber() {
 
       <Modal
         open={modalNovaAberto}
-        title="Nova Conta a Receber"
-        onClose={() => setModalNovaAberto(false)}
+        title={editandoConta ? 'Editar Conta a Receber' : 'Nova Conta a Receber'}
+        onClose={() => {
+          setModalNovaAberto(false);
+          setEditandoConta(null);
+        }}
       >
         <form onSubmit={salvarNova}>
           {erroForm && <div className="mb-3 text-sm text-red-600">{erroForm}</div>}
-          <label className="block text-sm mb-1">Cliente (opcional)</label>
-          <select
-            className="w-full border rounded px-3 py-2 mb-4"
-            value={form.clienteId}
-            onChange={(e) => setForm({ ...form, clienteId: e.target.value })}
-          >
-            <option value="">Nenhum cliente vinculado</option>
-            {clientes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nome}
-              </option>
-            ))}
-          </select>
-          <label className="block text-sm mb-1">Descrição</label>
-          <input
-            className="w-full border rounded px-3 py-2 mb-4"
-            value={form.descricao}
-            onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-            placeholder="Ex: Recebimento diverso - Cliente X"
-            required
-          />
-          <label className="block text-sm mb-1">Valor</label>
-          <input
-            type="number"
-            step="0.01"
-            className="w-full border rounded px-3 py-2 mb-4"
-            value={form.valor}
-            onChange={(e) => setForm({ ...form, valor: e.target.value })}
-            required
-          />
-          <label className="block text-sm mb-1">Data da Venda (opcional)</label>
-          <input
-            type="date"
-            className="w-full border rounded px-3 py-2 mb-1"
-            value={form.dataVenda}
-            onChange={(e) => setForm({ ...form, dataVenda: e.target.value })}
-          />
-          <div className="text-xs text-gray-500 mb-4">
-            Data de referência da venda/pendência (não precisa haver uma venda cadastrada).
-            Aparece no relatório de Pagamentos Pendentes/Recebidos.
-          </div>
+
+          {editandoConta?.vendaId ? (
+            <>
+              <div className="text-sm text-gray-600 mb-4">
+                Esta conta está vinculada à Venda #{editandoConta.vendaId}. O valor vem da soma
+                dos itens da venda e só pode ser alterado editando a venda. Aqui é possível
+                ajustar apenas o vencimento.
+              </div>
+              <div className="text-sm text-gray-500 mb-1">Valor (não editável aqui)</div>
+              <div className="font-medium mb-4">R$ {Number(editandoConta.valor).toFixed(2)}</div>
+            </>
+          ) : (
+            <>
+              <label className="block text-sm mb-1">Cliente (opcional)</label>
+              <select
+                className="w-full border rounded px-3 py-2 mb-4"
+                value={form.clienteId}
+                onChange={(e) => setForm({ ...form, clienteId: e.target.value })}
+              >
+                <option value="">Nenhum cliente vinculado</option>
+                {clientes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nome}
+                  </option>
+                ))}
+              </select>
+              <label className="block text-sm mb-1">Descrição</label>
+              <input
+                className="w-full border rounded px-3 py-2 mb-4"
+                value={form.descricao}
+                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                placeholder="Ex: Recebimento diverso - Cliente X"
+                required
+              />
+              <label className="block text-sm mb-1">Valor</label>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full border rounded px-3 py-2 mb-4"
+                value={form.valor}
+                onChange={(e) => setForm({ ...form, valor: e.target.value })}
+                required
+              />
+              <label className="block text-sm mb-1">Data da Venda (opcional)</label>
+              <input
+                type="date"
+                className="w-full border rounded px-3 py-2 mb-1"
+                value={form.dataVenda}
+                onChange={(e) => setForm({ ...form, dataVenda: e.target.value })}
+              />
+              <div className="text-xs text-gray-500 mb-4">
+                Data de referência da venda/pendência (não precisa haver uma venda cadastrada).
+                Aparece no relatório de Pagamentos Pendentes/Recebidos.
+              </div>
+            </>
+          )}
+
           <label className="block text-sm mb-1">Vencimento</label>
           <input
             type="date"
@@ -458,18 +517,24 @@ export default function ContasReceber() {
             onChange={(e) => setForm({ ...form, vencimento: e.target.value })}
             required
           />
-          <label className="block text-sm mb-1">Lucro deste recebimento (opcional)</label>
-          <input
-            type="number"
-            step="0.01"
-            className="w-full border rounded px-3 py-2 mb-1"
-            value={form.lucro}
-            onChange={(e) => setForm({ ...form, lucro: e.target.value })}
-          />
-          <div className="text-xs text-gray-500 mb-6">
-            Esse valor entra no cálculo de lucratividade do Dashboard, junto com o lucro das
-            vendas.
-          </div>
+
+          {!editandoConta?.vendaId && (
+            <>
+              <label className="block text-sm mb-1">Lucro deste recebimento (opcional)</label>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full border rounded px-3 py-2 mb-1"
+                value={form.lucro}
+                onChange={(e) => setForm({ ...form, lucro: e.target.value })}
+              />
+              <div className="text-xs text-gray-500 mb-6">
+                Esse valor entra no cálculo de lucratividade do Dashboard, junto com o lucro das
+                vendas.
+              </div>
+            </>
+          )}
+
           <button
             type="submit"
             className="w-full bg-slate-900 text-white rounded px-3 py-2 hover:bg-slate-800"

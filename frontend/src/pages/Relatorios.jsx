@@ -62,6 +62,7 @@ export default function Relatorios() {
   const [status, setStatus] = useState('');
   const [meses, setMeses] = useState(6);
   const [anos, setAnos] = useState(3);
+  const [exibirVencimentoStatus, setExibirVencimentoStatus] = useState(true);
   const [resultado, setResultado] = useState([]);
   const [vendaDetalheId, setVendaDetalheId] = useState(null);
 
@@ -186,9 +187,13 @@ export default function Relatorios() {
             dataVenda: formatarData(p.dataVenda),
             valorVenda: p.valorVenda.toFixed(2),
             valorPendencia: p.valor.toFixed(2),
-            vencimento: formatarData(p.vencimento),
-            status: STATUS_LABEL[p.status] || p.status,
-            diasAtraso: p.diasAtraso ?? '',
+            ...(exibirVencimentoStatus
+              ? {
+                  vencimento: formatarData(p.vencimento),
+                  status: STATUS_LABEL[p.status] || p.status,
+                  diasAtraso: p.diasAtraso ?? '',
+                }
+              : {}),
           });
         }
       } else {
@@ -308,19 +313,25 @@ export default function Relatorios() {
         }
       }
     } else if (aba === 'pagamentos-pendentes') {
-      colunas = ['Cliente', 'Venda', 'Data Venda', 'Valor Venda', 'Valor Pendente', 'Vencimento', 'Status'];
+      colunas = ['Cliente', 'Venda', 'Data Venda', 'Valor Venda', 'Valor Pendente'];
+      if (exibirVencimentoStatus) colunas.push('Vencimento', 'Status');
       for (const grupo of resultado) {
         for (const p of grupo.pendencias) {
           const statusTexto = STATUS_LABEL[p.status] || p.status;
-          linhas.push([
+          const linha = [
             grupo.clienteNome,
             p.vendaId ? `#${p.vendaId}` : p.descricao || 'Manual',
             p.dataVenda ? formatarData(p.dataVenda) : '-',
             `R$ ${p.valorVenda.toFixed(2)}`,
             `R$ ${p.valor.toFixed(2)}`,
-            formatarData(p.vencimento),
-            p.diasAtraso != null ? `${statusTexto} (${p.diasAtraso}d)` : statusTexto,
-          ]);
+          ];
+          if (exibirVencimentoStatus) {
+            linha.push(
+              formatarData(p.vencimento),
+              p.diasAtraso != null ? `${statusTexto} (${p.diasAtraso}d)` : statusTexto
+            );
+          }
+          linhas.push(linha);
         }
       }
     } else {
@@ -466,6 +477,18 @@ export default function Relatorios() {
                 </option>
               ))}
             </select>
+          </div>
+        )}
+        {aba === 'pagamentos-pendentes' && (
+          <div>
+            <label className="flex items-center gap-2 text-sm mb-1">
+              <input
+                type="checkbox"
+                checked={exibirVencimentoStatus}
+                onChange={(e) => setExibirVencimentoStatus(e.target.checked)}
+              />
+              Exibir vencimento e status
+            </label>
           </div>
         )}
         <button
@@ -731,8 +754,12 @@ export default function Relatorios() {
                     <th className="py-1">Data Venda</th>
                     <th className="py-1">Valor Venda</th>
                     <th className="py-1">Valor Pendente</th>
-                    <th className="py-1">Vencimento</th>
-                    <th className="py-1">Status</th>
+                    {exibirVencimentoStatus && (
+                      <>
+                        <th className="py-1">Vencimento</th>
+                        <th className="py-1">Status</th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -753,10 +780,14 @@ export default function Relatorios() {
                       <td className="py-1">{p.dataVenda ? formatarData(p.dataVenda) : '-'}</td>
                       <td className="py-1">R$ {p.valorVenda.toFixed(2)}</td>
                       <td className="py-1">R$ {p.valor.toFixed(2)}</td>
-                      <td className="py-1">{formatarData(p.vencimento)}</td>
-                      <td className="py-1">
-                        <StatusPendenciaBadge status={p.status} diasAtraso={p.diasAtraso} />
-                      </td>
+                      {exibirVencimentoStatus && (
+                        <>
+                          <td className="py-1">{formatarData(p.vencimento)}</td>
+                          <td className="py-1">
+                            <StatusPendenciaBadge status={p.status} diasAtraso={p.diasAtraso} />
+                          </td>
+                        </>
+                      )}
                     </tr>
                   ))}
                 </tbody>

@@ -61,26 +61,32 @@ router.post('/', async (req, res) => {
   res.status(201).json(conta);
 });
 
+// body para conta vinculada a venda: { vencimento } — só o vencimento pode ser ajustado
+// body para conta manual: { descricao, valor, vencimento, lucro?, clienteId?, dataVenda? }
 router.put('/:id', async (req, res) => {
   const id = Number(req.params.id);
   const { descricao, valor, vencimento, lucro, clienteId, dataVenda } = req.body;
   try {
     const contaAtual = await prisma.contaReceber.findUnique({ where: { id } });
     if (!contaAtual) throw new Error('Conta a receber não encontrada');
-    if (contaAtual.vendaId) throw new Error('Esta conta está vinculada a uma venda e não pode ser editada diretamente');
     if (contaAtual.status === 'PAGO') throw new Error('Não é possível editar uma conta já recebida');
+    if (!vencimento) throw new Error('Vencimento é obrigatório');
+
+    const data = contaAtual.vendaId
+      ? { vencimento: new Date(vencimento) }
+      : {
+          descricao,
+          valor,
+          vencimento: new Date(vencimento),
+          lucro: lucro !== undefined && lucro !== null && lucro !== '' ? lucro : null,
+          clienteId: clienteId ? Number(clienteId) : null,
+          dataVenda: dataVenda ? new Date(dataVenda) : null,
+        };
 
     const conta = await prisma.contaReceber.update({
       where: { id },
-      data: {
-        descricao,
-        valor,
-        vencimento: vencimento ? new Date(vencimento) : undefined,
-        lucro: lucro !== undefined && lucro !== null && lucro !== '' ? lucro : null,
-        clienteId: clienteId ? Number(clienteId) : null,
-        dataVenda: dataVenda ? new Date(dataVenda) : null,
-      },
-      include: { cliente: true },
+      data,
+      include: { cliente: true, venda: { include: { cliente: true } } },
     });
     res.json(conta);
   } catch (err) {
@@ -373,7 +379,9 @@ router.post('/baixar', async (req, res) => {
           await tx.contaReceber.create({
             data: {
               vendaId: conta.vendaId,
+              clienteId: conta.clienteId,
               descricao: conta.descricao,
+              dataVenda: conta.dataVenda,
               valor: valorRemanescente,
               vencimento: conta.vencimento,
               status: novaVencida,
