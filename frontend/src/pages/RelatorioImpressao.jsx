@@ -33,6 +33,7 @@ export default function RelatorioImpressao() {
   const clienteNomeFiltro = searchParams.get('clienteNome');
   const dataInicio = searchParams.get('dataInicio');
   const dataFim = searchParams.get('dataFim');
+  const exibirVencimentoStatus = searchParams.get('exibirVencimentoStatus') !== 'false';
 
   useEffect(() => {
     async function carregar() {
@@ -100,8 +101,8 @@ export default function RelatorioImpressao() {
         for (const p of grupo.pagamentos) {
           linhas.push([
             grupo.clienteNome,
-            `#${p.vendaId}`,
-            formatarData(p.dataVenda),
+            p.vendaId ? `#${p.vendaId}` : p.descricao || 'Manual',
+            p.dataVenda ? formatarData(p.dataVenda) : '-',
             `R$ ${p.valorVenda.toFixed(2)}`,
             `R$ ${p.valor.toFixed(2)}`,
             formatarData(p.pagoEm),
@@ -110,19 +111,25 @@ export default function RelatorioImpressao() {
         }
       }
     } else {
-      colunas = ['Cliente', 'Venda', 'Data Venda', 'Valor Venda', 'Valor Pendente', 'Vencimento', 'Status'];
+      colunas = ['Cliente', 'Venda', 'Data Venda', 'Valor Venda', 'Valor Pendente'];
+      if (exibirVencimentoStatus) colunas.push('Vencimento', 'Status');
       for (const grupo of resultado) {
         for (const p of grupo.pendencias) {
           const statusTexto = STATUS_LABEL[p.status] || p.status;
-          linhas.push([
+          const linha = [
             grupo.clienteNome,
-            `#${p.vendaId}`,
-            formatarData(p.dataVenda),
+            p.vendaId ? `#${p.vendaId}` : p.descricao || 'Manual',
+            p.dataVenda ? formatarData(p.dataVenda) : '-',
             `R$ ${p.valorVenda.toFixed(2)}`,
             `R$ ${p.valor.toFixed(2)}`,
-            formatarData(p.vencimento),
-            p.diasAtraso != null ? `${statusTexto} (${p.diasAtraso}d)` : statusTexto,
-          ]);
+          ];
+          if (exibirVencimentoStatus) {
+            linha.push(
+              formatarData(p.vencimento),
+              p.diasAtraso != null ? `${statusTexto} (${p.diasAtraso}d)` : statusTexto
+            );
+          }
+          linhas.push(linha);
         }
       }
     }
@@ -223,8 +230,8 @@ export default function RelatorioImpressao() {
               <tbody>
                 {grupo.pagamentos.map((p) => (
                   <tr key={p.contaId} className="border-t border-gray-200">
-                    <td className="py-1">#{p.vendaId}</td>
-                    <td className="py-1">{formatarData(p.dataVenda)}</td>
+                    <td className="py-1">{p.vendaId ? `#${p.vendaId}` : p.descricao || 'Manual'}</td>
+                    <td className="py-1">{p.dataVenda ? formatarData(p.dataVenda) : '-'}</td>
                     <td className="py-1">R$ {p.valorVenda.toFixed(2)}</td>
                     <td className="py-1">R$ {p.valor.toFixed(2)}</td>
                     <td className="py-1">{p.codigoBaixa || '-'}</td>
@@ -245,21 +252,29 @@ export default function RelatorioImpressao() {
                   <th className="py-1">Data Venda</th>
                   <th className="py-1">Valor Venda</th>
                   <th className="py-1">Valor Pendente</th>
-                  <th className="py-1">Vencimento</th>
-                  <th className="py-1 text-right">Status</th>
+                  {exibirVencimentoStatus && (
+                    <>
+                      <th className="py-1">Vencimento</th>
+                      <th className="py-1 text-right">Status</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {grupo.pendencias.map((p) => (
                   <tr key={p.contaId} className="border-t border-gray-200">
-                    <td className="py-1">#{p.vendaId}</td>
-                    <td className="py-1">{formatarData(p.dataVenda)}</td>
+                    <td className="py-1">{p.vendaId ? `#${p.vendaId}` : p.descricao || 'Manual'}</td>
+                    <td className="py-1">{p.dataVenda ? formatarData(p.dataVenda) : '-'}</td>
                     <td className="py-1">R$ {p.valorVenda.toFixed(2)}</td>
                     <td className="py-1">R$ {p.valor.toFixed(2)}</td>
-                    <td className="py-1">{formatarData(p.vencimento)}</td>
-                    <td className="py-1 text-right">
-                      <StatusPendenciaBadge status={p.status} diasAtraso={p.diasAtraso} />
-                    </td>
+                    {exibirVencimentoStatus && (
+                      <>
+                        <td className="py-1">{formatarData(p.vencimento)}</td>
+                        <td className="py-1 text-right">
+                          <StatusPendenciaBadge status={p.status} diasAtraso={p.diasAtraso} />
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>

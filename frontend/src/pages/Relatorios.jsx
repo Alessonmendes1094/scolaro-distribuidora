@@ -114,6 +114,9 @@ export default function Relatorios() {
     const params = new URLSearchParams(montarParams());
     const clienteNome = clientes.find((c) => String(c.id) === String(clienteId))?.nome;
     if (clienteNome) params.set('clienteNome', clienteNome);
+    if (aba === 'pagamentos-pendentes' && !exibirVencimentoStatus) {
+      params.set('exibirVencimentoStatus', 'false');
+    }
     window.open(`/relatorios/imprimir/${aba}?${params.toString()}`, '_blank');
   }
 
