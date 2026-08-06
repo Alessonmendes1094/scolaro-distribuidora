@@ -8,7 +8,7 @@ import SortableTh from '../components/SortableTh.jsx';
 import { useSort } from '../lib/useSort';
 import Modal from '../components/Modal.jsx';
 
-const FORM_INICIAL = { descricao: '', valor: '', vencimento: '', lucro: '', clienteId: '' };
+const FORM_INICIAL = { descricao: '', valor: '', vencimento: '', lucro: '', clienteId: '', dataVenda: '' };
 
 export default function ContasReceber() {
   const [modalNovaAberto, setModalNovaAberto] = useState(false);
@@ -136,6 +136,7 @@ export default function ContasReceber() {
         vencimento: form.vencimento,
         lucro: form.lucro !== '' ? Number(form.lucro) : null,
         clienteId: form.clienteId || null,
+        dataVenda: form.dataVenda || null,
       });
       setModalNovaAberto(false);
       carregar();
@@ -438,6 +439,17 @@ export default function ContasReceber() {
             onChange={(e) => setForm({ ...form, valor: e.target.value })}
             required
           />
+          <label className="block text-sm mb-1">Data da Venda (opcional)</label>
+          <input
+            type="date"
+            className="w-full border rounded px-3 py-2 mb-1"
+            value={form.dataVenda}
+            onChange={(e) => setForm({ ...form, dataVenda: e.target.value })}
+          />
+          <div className="text-xs text-gray-500 mb-4">
+            Data de referência da venda/pendência (não precisa haver uma venda cadastrada).
+            Aparece no relatório de Pagamentos Pendentes/Recebidos.
+          </div>
           <label className="block text-sm mb-1">Vencimento</label>
           <input
             type="date"

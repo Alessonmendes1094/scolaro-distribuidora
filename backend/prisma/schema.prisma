@@ -161,6 +161,7 @@ model ContaReceber {
   cliente     Cliente?    @relation(fields: [clienteId], references: [id])
   clienteId   Int?
   descricao   String?
+  dataVenda   DateTime?
   lucro       Decimal?    @db.Decimal(12, 2)
   valor       Decimal     @db.Decimal(12, 2)
   vencimento  DateTime

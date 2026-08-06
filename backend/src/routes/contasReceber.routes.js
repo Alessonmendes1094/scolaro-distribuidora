@@ -40,9 +40,9 @@ router.get('/', async (req, res) => {
   res.json(contas);
 });
 
-// body: { descricao, valor, vencimento, lucro?, clienteId? } — lançamento manual, sem venda vinculada
+// body: { descricao, valor, vencimento, lucro?, clienteId?, dataVenda? } — lançamento manual, sem venda vinculada
 router.post('/', async (req, res) => {
-  const { descricao, valor, vencimento, lucro, clienteId } = req.body;
+  const { descricao, valor, vencimento, lucro, clienteId, dataVenda } = req.body;
   if (!descricao || valor === undefined || !vencimento) {
     return res.status(400).json({ error: 'Descrição, valor e vencimento são obrigatórios' });
   }
@@ -53,6 +53,7 @@ router.post('/', async (req, res) => {
       vencimento: new Date(vencimento),
       lucro: lucro !== undefined && lucro !== null && lucro !== '' ? lucro : null,
       clienteId: clienteId ? Number(clienteId) : null,
+      dataVenda: dataVenda ? new Date(dataVenda) : null,
       status: 'PENDENTE',
     },
     include: { cliente: true },
@@ -62,7 +63,7 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   const id = Number(req.params.id);
-  const { descricao, valor, vencimento, lucro, clienteId } = req.body;
+  const { descricao, valor, vencimento, lucro, clienteId, dataVenda } = req.body;
   try {
     const contaAtual = await prisma.contaReceber.findUnique({ where: { id } });
     if (!contaAtual) throw new Error('Conta a receber não encontrada');
@@ -77,6 +78,7 @@ router.put('/:id', async (req, res) => {
         vencimento: vencimento ? new Date(vencimento) : undefined,
         lucro: lucro !== undefined && lucro !== null && lucro !== '' ? lucro : null,
         clienteId: clienteId ? Number(clienteId) : null,
+        dataVenda: dataVenda ? new Date(dataVenda) : null,
       },
       include: { cliente: true },
     });
